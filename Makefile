@@ -37,4 +37,4 @@ lint: ## Run linters
 
 .PHONY: mock
 mock:
-	@mockery -dir internal/usecase -outpkg usecase_test -all -inpkg -case snake
+	@mockery -dir internal/usecase -output internal/usecase/ -outpkg usecase_test -case snake -all -testonly

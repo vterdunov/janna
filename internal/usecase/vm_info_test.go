@@ -8,7 +8,7 @@ import (
 
 func TestUsecase_VMInfo(t *testing.T) {
 	// TODO: switch to table test
-	vmWareRepositoryMock := new(usecase.MockVMWareRepository)
+	vmWareRepositoryMock := new(VMWareRepository)
 	vmWareRepositoryMock.On("VMInfo", "ddd").Return(usecase.VMInfoResponse{}, nil)
 	u := usecase.NewUsecase(nil, vmWareRepositoryMock)
 	_, _ = u.VMInfo("ddd")
