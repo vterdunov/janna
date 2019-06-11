@@ -1,0 +1,9 @@
+language: minimal
+
+env:
+  global:
+    - COMMIT=${TRAVIS_COMMIT::7}
+
+script:
+  - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+  - ./build/ci/travis.sh

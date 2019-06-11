@@ -2,6 +2,8 @@ PROG_NAME = janna
 USERNAME = vterdunov
 IMAGE_NAME = $(USERNAME)/$(PROG_NAME)
 
+TAG ?= $(COMMIT)
+
 COMMIT ?= $(shell git rev-parse --short HEAD)
 BUILD_TIME ?= $(shell date -u '+%Y-%m-%dT%H:%M:%S')
 PROJECT ?= github.com/$(USERNAME)/${PROG_NAME}
@@ -14,14 +16,29 @@ GO_LDFLAGS := -ldflags '-extldflags "-fno-PIC -static" \
 
 GOLANGCI_LINTER_IMAGE = golangci/golangci-lint:v1.17.1
 
+all: lint docker
+
 .PHONY: help
 help: ## Display this help message
 	@echo "Please use \`make <target>\` where <target> is one of:"
 	@cat $(MAKEFILE_LIST) | grep -e "^[-a-zA-Z_\.]*: *.*## *" | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+.PHONY: docker
+docker: ## Build Docker container
+	docker build --tag=$(IMAGE_NAME):$(COMMIT) --tag=$(IMAGE_NAME):latest --build-arg=GITHUB_TOKEN=${GITHUB_TOKEN} --file build/Dockerfile .
+
 .PHONY: compile
 compile: ## Build binary
 	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/server/server.go
+
+.PHONY: test
+test: ## Run tests
+	go test -race ./...
+
+.PHONY: push
+push: ## Push docker container to registry
+	docker tag $(IMAGE_NAME):$(COMMIT) $(IMAGE_NAME):$(TAG)
+	docker push $(IMAGE_NAME):$(TAG)
 
 .PHONY: run
 run: ## Extract env variables from .env and run server with race detector
@@ -33,7 +50,7 @@ compile-and-run: compile ## Extract env variables from .env. Compile and run ser
 .PHONY: lint
 lint: ## Run linters
 	@echo Linting...
-	@docker run --tty --rm -v $(CURDIR):/lint -w /lint $(GOLANGCI_LINTER_IMAGE) /bin/sh -c 'if ! [ -d 'vendor' ]; then go mod download; fi && golangci-lint run'
+	@docker run --tty --rm -v $(CURDIR):/lint -v $$HOME/go/pkg/mod:/go/pkg/mod -w /lint $(GOLANGCI_LINTER_IMAGE) golangci-lint run
 
 .PHONY: mock
 mock:
