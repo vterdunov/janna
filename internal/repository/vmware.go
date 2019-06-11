@@ -335,7 +335,8 @@ func (o *ovfx) networkMap(e *ovf.Envelope) (p []types.OvfNetworkMapping) {
 			})
 		}
 	}
-	return
+
+	return p
 }
 
 func (o *ovfx) chooseComputerResource(ctx context.Context, resType, path string) error {

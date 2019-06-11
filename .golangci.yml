@@ -1,8 +1,6 @@
 ---
 run:
   deadline: 5m
-  tests: false
-  modules-download-mode: vendor
   skip-files:
     - ".*\\.pb\\.go$"
 
@@ -12,11 +10,11 @@ linters-settings:
   govet:
     check-shadowing: true
   gocyclo:
-    min-complexity: 30
+    min-complexity: 20
   maligned:
     suggest-new: true
-  dupl:
-    threshold: 100
+  nakedret:
+    max-func-lines: 0
 
 linters:
   enable-all: true
