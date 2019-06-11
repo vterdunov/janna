@@ -1,6 +1,7 @@
 package usecase_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ func TestUsecase_VMInfo(t *testing.T) {
 			want:      usecase.VMInfoResponse{},
 			wantError: true,
 			prepare: func(mock *VMWareRepository) {
-				mock.On("VMInfo", "dddd").Return(usecase.VMInfoResponse{}, nil).Once()
+				mock.On("VMInfo", "dddd").Return(usecase.VMInfoResponse{}, errors.New("something")).Once()
 			},
 		},
 	}
@@ -48,14 +49,13 @@ func TestUsecase_VMInfo(t *testing.T) {
 
 			u := usecase.NewUsecase(nil, mock)
 
-			// run the tested function
 			got, err := u.VMInfo(tt.arg)
 
 			if tt.wantError {
 				assert.NotNil(t, err)
 			} else {
 				assert.Nil(t, err)
-				assert.Equal(t, tt.want, got) // notice the go convention: want is first argument, got is the second argument
+				assert.Equal(t, tt.want, got)
 			}
 
 			// assert that the mocks were called correctly.
