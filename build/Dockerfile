@@ -1,4 +1,4 @@
-ARG GOLANG_VERSION=1.12.5
+ARG GOLANG_VERSION=1.12.6
 # ---------------
 FROM golang:${GOLANG_VERSION} AS env
 

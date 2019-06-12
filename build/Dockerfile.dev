@@ -4,7 +4,7 @@
 #-------------------------------------------------------------------------------------------------------------
 FROM docker AS docker-cli
 
-FROM golang:1.12.5
+FROM golang:1.12.6
 
 RUN go get -u -v \
     github.com/mdempsky/gocode \
