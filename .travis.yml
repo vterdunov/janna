@@ -5,16 +5,13 @@ env:
     - COMMIT=${TRAVIS_COMMIT::7}
     - CACHE_FOLDER=$HOME/docker-images
     - CACHE_FILE=${CACHE_FOLDER}/${NAME}-${TRAVIS_COMMIT}.tgz
-jobs:
-  include:
-    - stage: load cache
-      script:
-        - if [[ -f ${CACHE_FILE} ]]; then docker load -i ${CACHE_FILE}; fi
 
-    - stage: build
-      script:
-        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
-        - ./build/ci/travis.sh
+before_script:
+  - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+  - if [[ -f ${CACHE_FILE} ]]; then docker load -i ${CACHE_FILE}; fi
+
+script:
+  - ./build/ci/travis.sh
 
 cache:
   directories:
