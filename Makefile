@@ -18,11 +18,6 @@ GOLANGCI_LINTER_IMAGE = golangci/golangci-lint:v1.17.1
 
 all: lint docker
 
-.PHONY: help
-help: ## Display this help message
-	@echo "Please use \`make <target>\` where <target> is one of:"
-	@cat $(MAKEFILE_LIST) | grep -e "^[-a-zA-Z_\.]*: *.*## *" | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
-
 .PHONY: docker
 docker: ## Build Docker container
 	docker build --tag=$(IMAGE_NAME):$(COMMIT) --tag=$(IMAGE_NAME):latest --build-arg=GITHUB_TOKEN=${GITHUB_TOKEN} --file build/Dockerfile .
@@ -32,8 +27,8 @@ compile: ## Build binary
 	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/server/server.go
 
 .PHONY: test
-test: ## Run tests
-	go test -race ./...
+test: ## Run tests. With -race flag
+	go test -race -count=100 -v ./...
 
 .PHONY: push
 push: ## Push docker container to registry
@@ -55,3 +50,8 @@ lint: ## Run linters
 .PHONY: mock
 mock:
 	@mockery -dir internal/usecase -output internal/usecase/ -outpkg usecase_test -case snake -all -testonly
+
+.PHONY: help
+help: ## Display this help message
+	@echo "Please use \`make <target>\` where <target> is one of:"
+	@cat $(MAKEFILE_LIST) | grep -e "^[-a-zA-Z_\.]*: *.*## *" | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
