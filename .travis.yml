@@ -6,7 +6,7 @@ env:
   global:
     - COMMIT=${TRAVIS_COMMIT::7}
     - CACHE_FOLDER=$HOME/docker-images
-    - CACHE_FILE=${CACHE_FOLDER}/janna-latest.tgz
+    - CACHE_FILE=${CACHE_FOLDER}/janna-latest.tar
 
 before_script:
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
