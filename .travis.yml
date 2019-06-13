@@ -1,5 +1,7 @@
 language: minimal
 
+sudo: required
+
 env:
   global:
     - COMMIT=${TRAVIS_COMMIT::7}
