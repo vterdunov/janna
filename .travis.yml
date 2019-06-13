@@ -9,7 +9,7 @@ env:
 before_script:
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
   - ls -la ${CACHE_FOLDER}
-  - if [[ -f ${CACHE_FILE} ]]; then docker load -i ${CACHE_FILE}; fi
+  - if [[ -f ${CACHE_FILE} ]]; then docker load --input ${CACHE_FILE}; fi
 
 script:
   - ./build/ci/travis.sh
