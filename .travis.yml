@@ -4,10 +4,11 @@ env:
   global:
     - COMMIT=${TRAVIS_COMMIT::7}
     - CACHE_FOLDER=$HOME/docker-images
-    - CACHE_FILE=${CACHE_FOLDER}/janna-${TRAVIS_COMMIT}.tgz
+    - CACHE_FILE=${CACHE_FOLDER}/janna-latest.tgz
 
 before_script:
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+  - ls -la ${CACHE_FOLDER}
   - if [[ -f ${CACHE_FILE} ]]; then docker load -i ${CACHE_FILE}; fi
 
 script:
