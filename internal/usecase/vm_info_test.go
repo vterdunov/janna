@@ -5,69 +5,56 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	usecase "github.com/vterdunov/janna/internal/usecase"
 )
 
 func TestUsecase_VMInfo(t *testing.T) {
-	tests := []struct {
-		name      string
-		arg       string
+	tests := map[string]struct {
+		uuid      string
 		want      usecase.VMInfoResponse
 		wantError bool
 		prepare   func(*VMWareRepository)
 	}{
-		{
-			name:      "test",
-			arg:       "ddd",
+		"success": {
+			uuid:      "ddd",
 			want:      usecase.VMInfoResponse{},
 			wantError: false,
-			prepare: func(c *VMWareRepository) {
-				c.On("VMInfo", "ddd").Return(usecase.VMInfoResponse{}, nil).Once()
+			prepare: func(m *VMWareRepository) {
+				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, nil)
 			},
 		},
-		{
-			name:      "test2",
-			arg:       "dddd",
+		"withError": {
+			uuid:      "dddd",
 			want:      usecase.VMInfoResponse{},
 			wantError: true,
-			prepare: func(mock *VMWareRepository) {
-				mock.On("VMInfo", "dddd").Return(usecase.VMInfoResponse{}, errors.New("something")).Once()
+			prepare: func(m *VMWareRepository) {
+				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, errors.New("smthg"))
 			},
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := &VMWareRepository{}
+			defer m.AssertExpectations(t)
 
-			mock := new(VMWareRepository)
-
-			if tt.prepare != nil {
-				tt.prepare(mock)
+			if tc.prepare != nil {
+				tc.prepare(m)
 			}
 
-			u := usecase.NewUsecase(nil, mock)
+			u := usecase.NewUsecase(nil, m)
 
-			got, err := u.VMInfo(tt.arg)
+			got, err := u.VMInfo(tc.uuid)
 
-			if tt.wantError {
-				assert.NotNil(t, err)
-			} else {
-				assert.Nil(t, err)
-				assert.Equal(t, tt.want, got)
+			if tc.wantError {
+				assert.Error(t, err)
+				return
 			}
 
-			// assert that the mocks were called correctly.
-			mock.AssertExpectations(t)
+			assert.Equal(t, tc.want, got)
+			assert.NoError(t, err)
 		})
 	}
-
-	// TODO: switch to table test
-	// vmWareRepositoryMock := new(VMWareRepository)
-	// vmWareRepositoryMock.On("VMInfo", "ddd").Return(usecase.VMInfoResponse{}, nil)
-	// u := usecase.NewUsecase(nil, vmWareRepositoryMock)
-	// _, _ = u.VMInfo("ddd")
-
-	// vmWareRepositoryMock.AssertExpectations(t)
 }
