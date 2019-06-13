@@ -10,11 +10,6 @@ env:
 
 before_script:
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
-  - sudo ls -la ${CACHE_FILE}
-  - sudo ls -la /var/lib/docker/tmp/
-  - mkdir -p /var/lib/docker/tmp/
-  - sudo ls -la /var/lib/docker/tmp/
-  - sudo ls -la /var/lib/docker/
   - if [[ -f ${CACHE_FILE} ]]; then docker load < ${CACHE_FILE} || true; fi
 
 script:
