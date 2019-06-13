@@ -17,3 +17,5 @@ if [[ "$TRAVIS_BRANCH" == "master" ]]; then
   make push
   make push TAG=latest
 fi
+
+docker save "${DOCKER_USERNAME}/janna:${TRAVIS_TAG}" | gzip -c > "${CACHE_FILE}"
