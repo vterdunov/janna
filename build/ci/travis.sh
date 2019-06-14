@@ -22,6 +22,7 @@ fi
 # save layers for cache
 docker save "${DOCKER_USERNAME}/janna:stage-env" --output="${CACHE_FILE_STAGE_ENV}"
 docker save "${DOCKER_USERNAME}/janna:latest" --output="${CACHE_FILE}"
+make ci.save-linter-cache
 
 end=$(date +%s)
 
