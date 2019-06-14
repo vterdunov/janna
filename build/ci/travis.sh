@@ -18,4 +18,5 @@ if [[ "$TRAVIS_BRANCH" == "master" ]]; then
   make push TAG=latest
 fi
 
-docker save "${DOCKER_USERNAME}/janna:${TRAVIS_TAG}" > "${CACHE_FILE}"
+set -x
+docker save "${DOCKER_USERNAME}/janna:${TRAVIS_TAG}" --output="${CACHE_FILE}"
