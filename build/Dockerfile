@@ -17,19 +17,19 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # ---------------------------------------------
-FROM env AS builder
+FROM env AS compiler
 WORKDIR /build
 COPY . .
 
 RUN make compile
 
 # ---------------------------------------------
-FROM builder AS tester
+FROM compiler AS tester
 
 RUN make test
 
 # ---------------------------------------------
-FROM builder AS licence-scanner
+FROM compiler AS licence-scanner
 ARG GITHUB_TOKEN
 RUN golicense -verbose ./build/ci/golicense.hcl ./janna
 
@@ -40,11 +40,11 @@ ENV PORT=8080
 
 WORKDIR /janna
 
-COPY --from=builder /user/group /user/passwd /etc/
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=compiler /user/group /user/passwd /etc/
+COPY --from=compiler /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 USER janna:janna
 
 CMD ["./janna"]
 
-COPY --from=builder /build/janna janna
+COPY --from=compiler /build/janna janna
