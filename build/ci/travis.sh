@@ -19,4 +19,4 @@ if [[ "$TRAVIS_BRANCH" == "master" ]]; then
 fi
 
 set -x
-docker save "${DOCKER_USERNAME}/janna:${TRAVIS_TAG}" --output="${CACHE_FILE}"
+docker save "${DOCKER_USERNAME}/janna:latest" --output="${CACHE_FILE}"
