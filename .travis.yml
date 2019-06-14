@@ -7,10 +7,14 @@ env:
     - COMMIT=${TRAVIS_COMMIT::7}
     - CACHE_FOLDER=$HOME/docker-images
     - CACHE_FILE=${CACHE_FOLDER}/janna-latest.tar
+    - CACHE_FILE_STAGE_ENV=${CACHE_FOLDER}/janna-stage-env.tar
+    - CACHE_FILE_LINTER=${CACHE_FOLDER}/linter.tar
 
 before_script:
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
   - if [[ -f ${CACHE_FILE} ]]; then docker load < ${CACHE_FILE} || true; fi
+  - if [[ -f ${CACHE_FILE_STAGE_ENV} ]]; then docker load < ${CACHE_FILE_STAGE_ENV} || true; fi
+  - if [[ -f ${CACHE_FILE_LINTER} ]]; then docker load < ${CACHE_FILE_LINTER} || true; fi
   - docker image ls
 
 script:

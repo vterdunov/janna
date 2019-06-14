@@ -18,5 +18,6 @@ if [[ "$TRAVIS_BRANCH" == "master" ]]; then
   make push TAG=latest
 fi
 
-set -x
+# save layers for cache
+docker save "${DOCKER_USERNAME}/janna:stage-env" --output="${CACHE_FILE_STAGE_ENV}"
 docker save "${DOCKER_USERNAME}/janna:latest" --output="${CACHE_FILE}"

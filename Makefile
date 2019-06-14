@@ -20,11 +20,21 @@ all: lint docker
 
 .PHONY: docker
 docker: ## Build Docker container
-	@docker build \
+	# docker pull $(IMAGE_NAME):stage-env || true
+	# docker pull $(IMAGE_NAME):latest || true
+	docker build \
+		--target=env \
+		--cache-from=$(IMAGE_NAME):stage-env \
+		--tag=$(IMAGE_NAME):stage-env \
+		--file build/Dockerfile $(CURDIR)
+
+	docker build \
+		--target=final \
 		--tag=$(IMAGE_NAME):$(COMMIT) \
 		--tag=$(IMAGE_NAME):latest \
 		--build-arg=GITHUB_TOKEN=${GITHUB_TOKEN} \
 		--cache-from=$(IMAGE_NAME):latest \
+		--cache-from=$(IMAGE_NAME):stage-env \
 		--file build/Dockerfile $(CURDIR)
 
 .PHONY: compile
@@ -50,7 +60,12 @@ compile-and-run: compile ## Extract env variables from .env. Compile and run ser
 .PHONY: lint
 lint: ## Run linters
 	@echo Linting...
-	@docker run --tty --rm -v $(CURDIR):/lint -v $$HOME/go/pkg/mod:/go/pkg/mod -w /lint $(GOLANGCI_LINTER_IMAGE) golangci-lint run
+	@docker run \
+		--tty \
+		--rm -v $(CURDIR):/lint \
+		-v $$HOME/go/pkg/mod:/go/pkg/mod \
+		-w /lint \
+		$(GOLANGCI_LINTER_IMAGE) golangci-lint run
 
 .PHONY: mock
 mock:
@@ -60,3 +75,6 @@ mock:
 help: ## Display this help message
 	@echo "Please use \`make <target>\` where <target> is one of:"
 	@cat $(MAKEFILE_LIST) | grep -e "^[-a-zA-Z_\.]*: *.*## *" | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+ci.save-linter-cache:
+	@docker save $(GOLANGCI_LINTER_IMAGE) --output=$(CACHE_FILE_LINTER)
