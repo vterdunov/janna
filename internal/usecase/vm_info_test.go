@@ -12,23 +12,23 @@ import (
 
 func TestUsecase_VMInfo(t *testing.T) {
 	tests := map[string]struct {
-		uuid      string
-		want      usecase.VMInfoResponse
-		wantError bool
-		prepare   func(*VMWareRepository)
+		uuid    string
+		want    usecase.VMInfoResponse
+		wantErr bool
+		prepare func(*VMWareRepository)
 	}{
 		"success": {
-			uuid:      "ddd",
-			want:      usecase.VMInfoResponse{},
-			wantError: false,
+			uuid:    "ddd",
+			want:    usecase.VMInfoResponse{},
+			wantErr: false,
 			prepare: func(m *VMWareRepository) {
 				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, nil)
 			},
 		},
 		"withError": {
-			uuid:      "dddd",
-			want:      usecase.VMInfoResponse{},
-			wantError: true,
+			uuid:    "dddd",
+			want:    usecase.VMInfoResponse{},
+			wantErr: true,
 			prepare: func(m *VMWareRepository) {
 				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, errors.New("smthg"))
 			},
@@ -48,7 +48,7 @@ func TestUsecase_VMInfo(t *testing.T) {
 
 			got, err := u.VMInfo(tc.uuid)
 
-			if tc.wantError {
+			if tc.wantErr {
 				assert.Error(t, err)
 				return
 			}
