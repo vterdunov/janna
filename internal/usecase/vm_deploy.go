@@ -1,5 +1,13 @@
 package usecase
 
+type DatastoreType int
+
+const (
+	Invalid DatastoreType = iota
+	Cluster
+	Datastore
+)
+
 func (u *Usecase) VMDeploy(params VMDeployRequest) (VMDeployResponse, error) {
 	return u.vmWareRepository.VMDeploy(params)
 }
@@ -25,6 +33,6 @@ type ComputerResources struct {
 }
 
 type Datastores struct {
-	Type  string
+	Type  DatastoreType
 	Names []string
 }

@@ -417,18 +417,18 @@ func (o *ovfx) chooseDatacenter(ctx context.Context, dcName string) error {
 	return nil
 }
 
-func (o *ovfx) chooseDatastore(ctx context.Context, dsType string, names []string) error {
+func (o *ovfx) chooseDatastore(ctx context.Context, dsType usecase.DatastoreType, names []string) error {
 	switch dsType {
-	case "cluster":
+	case usecase.Cluster:
 		if err := o.chooseDatastoreWithCluster(ctx, names); err != nil {
 			return err
 		}
-	case "datastore":
+	case usecase.Datastore:
 		if err := o.chooseDatastoreWithDatastore(ctx, names); err != nil {
 			return err
 		}
 	default:
-		_ = errors.New("could not recognize datastore type. Possible values are 'cluster', 'datastore'")
+		return errors.New("could not recognize datastore type.")
 	}
 	return nil
 }

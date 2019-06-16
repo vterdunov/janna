@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -70,11 +71,19 @@ func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 		Path: crPath,
 	}
 
-	var dsType string
+	var dsType usecase.DatastoreType
 	var dsNames []string
 	if in.Datastores != nil {
-		dsType = in.Datastores.Type.String()
 		dsNames = in.Datastores.Names
+
+		switch in.Datastores.Type.String() {
+		case "TYPE_CLUSTER":
+			dsType = usecase.Cluster
+		case "TYPE_DATASTORE":
+			dsType = usecase.Datastore
+		default:
+			return nil, errors.New("could not recognize datastore type. Please read documentation.")
+		}
 	}
 
 	datastores := usecase.Datastores{
