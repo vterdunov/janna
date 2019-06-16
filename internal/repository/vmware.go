@@ -339,17 +339,17 @@ func (o *ovfx) networkMap(e *ovf.Envelope) (p []types.OvfNetworkMapping) {
 	return p
 }
 
-func (o *ovfx) chooseComputerResource(ctx context.Context, resType, path string) error {
+func (o *ovfx) chooseComputerResource(ctx context.Context, resType usecase.ComputerResourcesType, path string) error {
 	switch resType {
-	case "TYPE_HOST":
+	case usecase.ComputerResourceHost:
 		if err := o.computerResourceWithHost(ctx, path); err != nil {
 			return err
 		}
-	case "TYPE_CLUSTER":
+	case usecase.ComputerResourceCluster:
 		if err := o.computerResourceWithCluster(ctx, path); err != nil {
 			return err
 		}
-	case "TYPE_RP":
+	case usecase.ComputerResourceResourcePool:
 		if err := o.computerResourceWithResourcePool(ctx, path); err != nil {
 			return err
 		}
@@ -419,16 +419,16 @@ func (o *ovfx) chooseDatacenter(ctx context.Context, dcName string) error {
 
 func (o *ovfx) chooseDatastore(ctx context.Context, dsType usecase.DatastoreType, names []string) error {
 	switch dsType {
-	case usecase.Cluster:
+	case usecase.DatastoreCluster:
 		if err := o.chooseDatastoreWithCluster(ctx, names); err != nil {
 			return err
 		}
-	case usecase.Datastore:
+	case usecase.DatastoreDatastore:
 		if err := o.chooseDatastoreWithDatastore(ctx, names); err != nil {
 			return err
 		}
 	default:
-		return errors.New("could not recognize datastore type.")
+		return errors.New("could not recognize datastore type")
 	}
 	return nil
 }

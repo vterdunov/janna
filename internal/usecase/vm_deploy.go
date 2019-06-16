@@ -3,9 +3,20 @@ package usecase
 type DatastoreType int
 
 const (
-	Invalid DatastoreType = iota
-	Cluster
-	Datastore
+	// Datastore Type Enum
+	DatastoreInvalid DatastoreType = iota
+	DatastoreCluster
+	DatastoreDatastore
+)
+
+type ComputerResourcesType int
+
+const (
+	// Computer Resources Enum
+	ComputerResourceInvalid ComputerResourcesType = iota
+	ComputerResourceHost
+	ComputerResourceCluster
+	ComputerResourceResourcePool
 )
 
 func (u *Usecase) VMDeploy(params VMDeployRequest) (VMDeployResponse, error) {
@@ -29,7 +40,7 @@ type VMDeployResponse struct {
 
 type ComputerResources struct {
 	Path string
-	Type string
+	Type ComputerResourcesType
 }
 
 type Datastores struct {

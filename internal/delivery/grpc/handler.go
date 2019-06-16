@@ -59,11 +59,21 @@ func (s *server) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VM
 
 func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
 	// TODO: validate incoming data
-	var crType string
+	var crType usecase.ComputerResourcesType
 	var crPath string
 	if in.ComputerResources != nil {
-		crType = in.ComputerResources.Type.String()
 		crPath = in.ComputerResources.Path
+
+		switch in.ComputerResources.Type.String() {
+		case "TYPE_HOST":
+			crType = usecase.ComputerResourceHost
+		case "TYPE_CLUSTER":
+			crType = usecase.ComputerResourceCluster
+		case "TYPE_RP":
+			crType = usecase.ComputerResourceResourcePool
+		default:
+			return nil, errors.New("could not recognize Computer resource type. Please read documentation")
+		}
 	}
 
 	cr := usecase.ComputerResources{
@@ -78,11 +88,11 @@ func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 
 		switch in.Datastores.Type.String() {
 		case "TYPE_CLUSTER":
-			dsType = usecase.Cluster
+			dsType = usecase.DatastoreCluster
 		case "TYPE_DATASTORE":
-			dsType = usecase.Datastore
+			dsType = usecase.DatastoreDatastore
 		default:
-			return nil, errors.New("could not recognize datastore type. Please read documentation.")
+			return nil, errors.New("could not recognize Datastore type. Please read documentation")
 		}
 	}
 
