@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
@@ -72,25 +73,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-
-	// graceful shutdown
-	go func() {
-		for range c {
-			logger.Info("shutting down HTTP Gateway proxy...")
-			httpServer.Shutdown(ctx)
-			logger.Info("shutting down gRPC server...")
-			grpcServer.GracefulStop()
-
-			<-ctx.Done()
-		}
-	}()
-
 	// run HTTP server
+	logger.Info("starting HTTP Gateway proxy...")
+	httpServer = setupHTTPServer(ctx, cfg, logger)
 	go func() {
-		logger.Info("starting HTTP Gateway proxy...")
-		httpServer = setupHTTPServer(ctx, cfg, logger)
 		httpServer.ListenAndServe()
 	}()
 
@@ -100,11 +86,25 @@ func main() {
 		logger.Error("could not start GRPC server", zap.Error(err))
 	}
 
-	err = grpcServer.Serve(l)
-	if err != nil {
-		logger.Error("unenxpected error", zap.Error(err))
-		os.Exit(1)
-	}
+	// run GRPC server
+	go func() {
+		if err = grpcServer.Serve(l); err != nil {
+			logger.Error("unenxpected error", zap.Error(err))
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-quit
+
+	// graceful shutdown
+	logger.Info("shutting down HTTP Gateway proxy...")
+	httpServer.Shutdown(ctx)
+	logger.Info("shutting down gRPC server...")
+	grpcServer.GracefulStop()
+
 }
 
 func setupHTTPServer(ctx context.Context, cfg *config.Config, l *zap.Logger) *http.Server {
@@ -120,10 +120,10 @@ func setupHTTPServer(ctx context.Context, cfg *config.Config, l *zap.Logger) *ht
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.Handle("/", gwMux)
 
-	srv := http.Server{
+	server := http.Server{
 		Addr:    ":" + cfg.Protocols.HTTP.Port,
 		Handler: mux,
 	}
 
-	return &srv
+	return &server
 }
