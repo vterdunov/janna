@@ -6,20 +6,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	usecase "github.com/vterdunov/janna/internal/usecase"
+	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
 )
 
 func TestUsecase_AppInfo(t *testing.T) {
 	tests := map[string]struct {
-		want    *usecase.AppInfoResponse
+		want    usecase.AppInfoResponse
 		wantErr bool
 		prepare func(*AppInfoRepository)
 	}{
 		"success": {
-			want:    &usecase.AppInfoResponse{Commit: "test", BuildTime: "2000-01-01"},
+			want:    usecase.AppInfoResponse{Commit: "test", BuildTime: "2000-01-01"},
 			wantErr: false,
 			prepare: func(m *AppInfoRepository) {
-				resp := &usecase.AppInfoResponse{
+				resp := usecase.AppInfoResponse{
 					Commit:    "test",
 					BuildTime: "2000-01-01",
 				}
@@ -27,13 +27,14 @@ func TestUsecase_AppInfo(t *testing.T) {
 			},
 		},
 		"withError": {
-			want:    &usecase.AppInfoResponse{},
+			want:    usecase.AppInfoResponse{},
 			wantErr: true,
 			prepare: func(m *AppInfoRepository) {
-				m.On("AppInfo").Return(&usecase.AppInfoResponse{}, errors.New("smthg"))
+				m.On("AppInfo").Return(usecase.AppInfoResponse{}, errors.New("smthg"))
 			},
 		},
 	}
+
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			m := &AppInfoRepository{}
@@ -43,7 +44,7 @@ func TestUsecase_AppInfo(t *testing.T) {
 				tc.prepare(m)
 			}
 
-			u := usecase.NewUsecase(m, nil)
+			u := usecase.NewAppInfo(m)
 			got, err := u.AppInfo()
 
 			if tc.wantErr {

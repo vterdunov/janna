@@ -30,11 +30,11 @@ import (
 	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
 )
 
-type VMWareRepository struct {
+type VMRepository struct {
 	client *govmomi.Client
 }
 
-func NewVMWareRepository(url string, insecure bool) (*VMWareRepository, error) {
+func NewVMRepository(url string, insecure bool) (*VMRepository, error) {
 	ctx := context.Background()
 	u, err := soap.ParseURL(url)
 	if err != nil {
@@ -58,14 +58,14 @@ func NewVMWareRepository(url string, insecure bool) (*VMWareRepository, error) {
 		return nil, err
 	}
 
-	repo := VMWareRepository{
+	repo := VMRepository{
 		client: client,
 	}
 
 	return &repo, nil
 }
 
-func (v *VMWareRepository) VMInfo(uuid string) (usecase.VMInfoResponse, error) {
+func (v *VMRepository) VMInfo(uuid string) (usecase.VMInfoResponse, error) {
 	ctx := context.Background()
 	vm, err := findByUUID(ctx, v.client.Client, "DC1", uuid)
 	if err != nil {
@@ -147,7 +147,7 @@ func (t *TapeArchiveEntry) Close() error {
 	return t.f.Close()
 }
 
-func (v *VMWareRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMDeployResponse, error) {
+func (v *VMRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMDeployResponse, error) {
 	ctx := context.Background()
 	deploy, err := newOVFx(ctx, v.client.Client, params)
 	if err != nil {

@@ -23,8 +23,10 @@ type VMDeploy struct {
 	VMRepository
 }
 
-func (d *VMDeploy) New() VMDeploy {
-	return VMDeploy{}
+func NewVMDeploy(r VMRepository) VMDeploy {
+	return VMDeploy{
+		VMRepository: r,
+	}
 }
 
 func (d *VMDeploy) Execute(params VMDeployRequest) (VMDeployResponse, error) {

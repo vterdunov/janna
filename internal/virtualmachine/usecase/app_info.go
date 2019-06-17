@@ -6,8 +6,10 @@ type AppInfo struct {
 	AppInfoRepository
 }
 
-func (a *AppInfo) New() AppInfo {
-	return AppInfo{}
+func NewAppInfo(r AppInfoRepository) *AppInfo {
+	return &AppInfo{
+		AppInfoRepository: r,
+	}
 }
 
 func (a *AppInfo) Execute() (AppInfoResponse, error) {

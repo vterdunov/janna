@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	usecase "github.com/vterdunov/janna/internal/usecase"
+	usecase "github.com/vterdunov/janna/internal/virtualmachine/usecase"
 )
 
 func TestUsecase_VMInfo(t *testing.T) {
@@ -15,13 +15,13 @@ func TestUsecase_VMInfo(t *testing.T) {
 		uuid    string
 		want    usecase.VMInfoResponse
 		wantErr bool
-		prepare func(*VMWareRepository)
+		prepare func(*VMRepository)
 	}{
 		"success": {
 			uuid:    "ddd",
 			want:    usecase.VMInfoResponse{},
 			wantErr: false,
-			prepare: func(m *VMWareRepository) {
+			prepare: func(m *VMRepository) {
 				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, nil)
 			},
 		},
@@ -29,7 +29,7 @@ func TestUsecase_VMInfo(t *testing.T) {
 			uuid:    "dddd",
 			want:    usecase.VMInfoResponse{},
 			wantErr: true,
-			prepare: func(m *VMWareRepository) {
+			prepare: func(m *VMRepository) {
 				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, errors.New("smthg"))
 			},
 		},
@@ -37,14 +37,14 @@ func TestUsecase_VMInfo(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			m := &VMWareRepository{}
+			m := &VMRepository{}
 			defer m.AssertExpectations(t)
 
 			if tc.prepare != nil {
 				tc.prepare(m)
 			}
 
-			u := usecase.NewUsecase(nil, m)
+			u := usecase.VMInfo{m}
 
 			got, err := u.VMInfo(tc.uuid)
 

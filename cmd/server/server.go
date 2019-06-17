@@ -21,8 +21,8 @@ import (
 	"github.com/vterdunov/janna/internal/config"
 	deliveryGrpc "github.com/vterdunov/janna/internal/delivery/grpc"
 	"github.com/vterdunov/janna/internal/delivery/grpc/middleware"
-	"github.com/vterdunov/janna/internal/repository"
-	"github.com/vterdunov/janna/internal/usecase"
+	"github.com/vterdunov/janna/internal/virtualmachine/repository"
+	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
 )
 
 func main() {
@@ -57,15 +57,18 @@ func main() {
 
 	// setup repositories
 	appRep := repository.NewAppRepository()
-	vmwareRep, err := repository.NewVMWareRepository(cfg.VMWare.URL, cfg.VMWare.Insecure)
+	vmwareRep, err := repository.NewVMRepository(cfg.VMWare.URL, cfg.VMWare.Insecure)
 	if err != nil {
 		logger.Error("could not create VMWare connection", zap.Error(err))
 		os.Exit(1)
 	}
 
 	// register and run servers
-	usecase := usecase.NewUsecase(appRep, vmwareRep)
-	deliveryGrpc.RegisterServer(grpcServer, usecase)
+	// usecase := usecase.NewUsecase(appRep, vmwareRep)
+	appInfoUsecase := usecase.AppInfo{appRep}
+	vmInfoUsecase := usecase.VMInfo{vmwareRep}
+	vmDeployUsecase := usecase.VMDeploy{vmwareRep}
+	deliveryGrpc.RegisterServer(grpcServer, &appInfoUsecase, &vmInfoUsecase, &vmDeployUsecase)
 
 	var httpServer *http.Server
 
