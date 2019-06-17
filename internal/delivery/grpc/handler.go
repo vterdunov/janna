@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -58,11 +59,21 @@ func (s *server) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VM
 
 func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
 	// TODO: validate incoming data
-	var crType string
+	var crType usecase.ComputerResourcesType
 	var crPath string
 	if in.ComputerResources != nil {
-		crType = in.ComputerResources.Type.String()
 		crPath = in.ComputerResources.Path
+
+		switch in.ComputerResources.Type.String() {
+		case "TYPE_HOST":
+			crType = usecase.ComputerResourceHost
+		case "TYPE_CLUSTER":
+			crType = usecase.ComputerResourceCluster
+		case "TYPE_RP":
+			crType = usecase.ComputerResourceResourcePool
+		default:
+			return nil, errors.New("could not recognize Computer resource type. Please read documentation")
+		}
 	}
 
 	cr := usecase.ComputerResources{
@@ -70,11 +81,19 @@ func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 		Path: crPath,
 	}
 
-	var dsType string
+	var dsType usecase.DatastoreType
 	var dsNames []string
 	if in.Datastores != nil {
-		dsType = in.Datastores.Type.String()
 		dsNames = in.Datastores.Names
+
+		switch in.Datastores.Type.String() {
+		case "TYPE_CLUSTER":
+			dsType = usecase.DatastoreCluster
+		case "TYPE_DATASTORE":
+			dsType = usecase.DatastoreDatastore
+		default:
+			return nil, errors.New("could not recognize Datastore type. Please read documentation")
+		}
 	}
 
 	datastores := usecase.Datastores{

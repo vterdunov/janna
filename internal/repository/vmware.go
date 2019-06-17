@@ -339,17 +339,17 @@ func (o *ovfx) networkMap(e *ovf.Envelope) (p []types.OvfNetworkMapping) {
 	return p
 }
 
-func (o *ovfx) chooseComputerResource(ctx context.Context, resType, path string) error {
+func (o *ovfx) chooseComputerResource(ctx context.Context, resType usecase.ComputerResourcesType, path string) error {
 	switch resType {
-	case "TYPE_HOST":
+	case usecase.ComputerResourceHost:
 		if err := o.computerResourceWithHost(ctx, path); err != nil {
 			return err
 		}
-	case "TYPE_CLUSTER":
+	case usecase.ComputerResourceCluster:
 		if err := o.computerResourceWithCluster(ctx, path); err != nil {
 			return err
 		}
-	case "TYPE_RP":
+	case usecase.ComputerResourceResourcePool:
 		if err := o.computerResourceWithResourcePool(ctx, path); err != nil {
 			return err
 		}
@@ -417,18 +417,18 @@ func (o *ovfx) chooseDatacenter(ctx context.Context, dcName string) error {
 	return nil
 }
 
-func (o *ovfx) chooseDatastore(ctx context.Context, dsType string, names []string) error {
+func (o *ovfx) chooseDatastore(ctx context.Context, dsType usecase.DatastoreType, names []string) error {
 	switch dsType {
-	case "cluster":
+	case usecase.DatastoreCluster:
 		if err := o.chooseDatastoreWithCluster(ctx, names); err != nil {
 			return err
 		}
-	case "datastore":
+	case usecase.DatastoreDatastore:
 		if err := o.chooseDatastoreWithDatastore(ctx, names); err != nil {
 			return err
 		}
 	default:
-		_ = errors.New("could not recognize datastore type. Possible values are 'cluster', 'datastore'")
+		return errors.New("could not recognize datastore type")
 	}
 	return nil
 }
