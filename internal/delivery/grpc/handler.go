@@ -8,16 +8,24 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
-	"github.com/vterdunov/janna/internal/usecase"
+	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
 )
 
 type server struct {
-	usecase *usecase.Usecase
+	appInfo *usecase.AppInfo
+	vmInfo *usecase.VMInfo
+	vmDeploy *usecase.VMDeploy
 }
 
-func RegisterServer(gserver *grpc.Server, u *usecase.Usecase) {
+func RegisterServer(
+	gserver *grpc.Server,
+	appInfo *usecase.AppInfo,
+	vmInfo *usecase.VMInfo,
+	vmDeploy *usecase.VMDeploy) {
 	s := &server{
-		usecase: u,
+		appInfo: appInfo,
+		vmInfo: vmInfo,
+		vmDeploy: vmDeploy,
 	}
 
 	apiV1.RegisterJannaAPIServer(gserver, s)
@@ -25,7 +33,7 @@ func RegisterServer(gserver *grpc.Server, u *usecase.Usecase) {
 }
 
 func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
-	appInfo, err := s.usecase.AppInfo()
+	appInfo, err := s.appInfo.AppInfo()
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +45,7 @@ func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.
 }
 
 func (s *server) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
-	info, err := s.usecase.VMInfo(in.VmUuid)
+	info, err := s.vmInfo.VMInfo(in.VmUuid)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +119,7 @@ func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 		Datastores:        datastores,
 	}
 
-	r, err := s.usecase.VMDeploy(params)
+	r, err := s.vmDeploy.VMDeploy(params)
 	if err != nil {
 		return nil, err
 	}
