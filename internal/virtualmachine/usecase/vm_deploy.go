@@ -20,17 +20,19 @@ const (
 )
 
 type VMDeploy struct {
+	params VMDeployRequest
 	VMRepository
 }
 
-func NewVMDeploy(r VMRepository) VMDeploy {
+func NewVMDeploy(r VMRepository, params VMDeployRequest) VMDeploy {
 	return VMDeploy{
+		params:       params,
 		VMRepository: r,
 	}
 }
 
-func (d *VMDeploy) Execute(params VMDeployRequest) (VMDeployResponse, error) {
-	return d.VMDeploy(params)
+func (d *VMDeploy) Execute() (VMDeployResponse, error) {
+	return d.vmDeploy(d.params)
 }
 
 type VMDeployRequest struct {

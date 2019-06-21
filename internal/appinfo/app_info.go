@@ -1,7 +1,7 @@
-package usecase
+package appinfo
 
-// AppInfo implements usecase to ask the programm information.
-// Such as build time and commit hash
+// AppInfo is a command that implements a usecase that requests
+// information about the program. Such as build time and commit hash.
 type AppInfo struct {
 	AppInfoRepository
 }
@@ -12,8 +12,9 @@ func NewAppInfo(r AppInfoRepository) *AppInfo {
 	}
 }
 
+// Execute returns the application information
 func (a *AppInfo) Execute() (AppInfoResponse, error) {
-	return a.AppInfo()
+	return a.getAppInfo()
 }
 
 type AppInfoResponse struct {

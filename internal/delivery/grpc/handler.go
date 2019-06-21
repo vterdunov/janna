@@ -8,24 +8,23 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
-	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
+	"github.com/vterdunov/janna/internal/appinfo"
+	vmRepository "github.com/vterdunov/janna/internal/virtualmachine/repository"
+	vmUsecase "github.com/vterdunov/janna/internal/virtualmachine/usecase"
 )
 
 type server struct {
-	appInfo *usecase.AppInfo
-	vmInfo *usecase.VMInfo
-	vmDeploy *usecase.VMDeploy
+	appInfoRepository appinfo.AppInfoRepository
+	vmRepository      vmRepository.VMRepository
 }
 
 func RegisterServer(
 	gserver *grpc.Server,
-	appInfo *usecase.AppInfo,
-	vmInfo *usecase.VMInfo,
-	vmDeploy *usecase.VMDeploy) {
+	appInfoRepository appinfo.AppInfoRepository,
+	vmRepository vmRepository.VMRepository) {
 	s := &server{
-		appInfo: appInfo,
-		vmInfo: vmInfo,
-		vmDeploy: vmDeploy,
+		appInfoRepository: appInfoRepository,
+		vmRepository:      vmRepository,
 	}
 
 	apiV1.RegisterJannaAPIServer(gserver, s)
@@ -33,7 +32,9 @@ func RegisterServer(
 }
 
 func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
-	appInfo, err := s.appInfo.AppInfo()
+	command := appinfo.NewAppInfo(s.appInfoRepository)
+
+	appInfo, err := command.Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +46,8 @@ func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.
 }
 
 func (s *server) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
-	info, err := s.vmInfo.VMInfo(in.VmUuid)
+	command := vmUsecase.NewVMInfo()
+	info, err := command.Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -67,49 +69,49 @@ func (s *server) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VM
 
 func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
 	// TODO: validate incoming data
-	var crType usecase.ComputerResourcesType
+	var crType vmUsecase.ComputerResourcesType
 	var crPath string
 	if in.ComputerResources != nil {
 		crPath = in.ComputerResources.Path
 
 		switch in.ComputerResources.Type.String() {
 		case "TYPE_HOST":
-			crType = usecase.ComputerResourceHost
+			crType = vmUsecase.ComputerResourceHost
 		case "TYPE_CLUSTER":
-			crType = usecase.ComputerResourceCluster
+			crType = vmUsecase.ComputerResourceCluster
 		case "TYPE_RP":
-			crType = usecase.ComputerResourceResourcePool
+			crType = vmUsecase.ComputerResourceResourcePool
 		default:
 			return nil, errors.New("could not recognize Computer resource type. Please read documentation")
 		}
 	}
 
-	cr := usecase.ComputerResources{
+	cr := vmUsecase.ComputerResources{
 		Type: crType,
 		Path: crPath,
 	}
 
-	var dsType usecase.DatastoreType
+	var dsType vmUsecase.DatastoreType
 	var dsNames []string
 	if in.Datastores != nil {
 		dsNames = in.Datastores.Names
 
 		switch in.Datastores.Type.String() {
 		case "TYPE_CLUSTER":
-			dsType = usecase.DatastoreCluster
+			dsType = vmUsecase.DatastoreCluster
 		case "TYPE_DATASTORE":
-			dsType = usecase.DatastoreDatastore
+			dsType = vmUsecase.DatastoreDatastore
 		default:
 			return nil, errors.New("could not recognize Datastore type. Please read documentation")
 		}
 	}
 
-	datastores := usecase.Datastores{
+	datastores := vmUsecase.Datastores{
 		Type:  dsType,
 		Names: dsNames,
 	}
 
-	params := usecase.VMDeployRequest{
+	params := vmUsecase.VMDeployRequest{
 		Name:              in.Name,
 		Datacenter:        in.Datacenter,
 		OvaURL:            in.OvaUrl,
@@ -119,7 +121,8 @@ func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 		Datastores:        datastores,
 	}
 
-	r, err := s.vmDeploy.VMDeploy(params)
+	command := vmUsecase.NewVMDeploy(s.vmRepository, params)
+	r, err := command.Execute()
 	if err != nil {
 		return nil, err
 	}

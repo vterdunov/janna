@@ -34,17 +34,17 @@ type VMRepository struct {
 	client *govmomi.Client
 }
 
-func NewVMRepository(url string, insecure bool) (*VMRepository, error) {
+func NewVMRepository(url string, insecure bool) (VMRepository, error) {
 	ctx := context.Background()
 	u, err := soap.ParseURL(url)
 	if err != nil {
-		return nil, err
+		return VMRepository{}, err
 	}
 
 	soapClient := soap.NewClient(u, insecure)
 	vimClient, err := vim25.NewClient(ctx, soapClient)
 	if err != nil {
-		return nil, err
+		return VMRepository{}, err
 	}
 
 	vimClient.RoundTripper = session.KeepAlive(vimClient.RoundTripper, 1*time.Minute)
@@ -55,17 +55,17 @@ func NewVMRepository(url string, insecure bool) (*VMRepository, error) {
 
 	err = client.SessionManager.Login(ctx, u.User)
 	if err != nil {
-		return nil, err
+		return VMRepository{}, err
 	}
 
 	repo := VMRepository{
 		client: client,
 	}
 
-	return &repo, nil
+	return repo, nil
 }
 
-func (v *VMRepository) VMInfo(uuid string) (usecase.VMInfoResponse, error) {
+func (v VMRepository) vmInfo(uuid string) (usecase.VMInfoResponse, error) {
 	ctx := context.Background()
 	vm, err := findByUUID(ctx, v.client.Client, "DC1", uuid)
 	if err != nil {
@@ -147,7 +147,7 @@ func (t *TapeArchiveEntry) Close() error {
 	return t.f.Close()
 }
 
-func (v *VMRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMDeployResponse, error) {
+func (v VMRepository) vmDeploy(params usecase.VMDeployRequest) (usecase.VMDeployResponse, error) {
 	ctx := context.Background()
 	deploy, err := newOVFx(ctx, v.client.Client, params)
 	if err != nil {

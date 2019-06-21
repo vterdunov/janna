@@ -21,8 +21,9 @@ import (
 	"github.com/vterdunov/janna/internal/config"
 	deliveryGrpc "github.com/vterdunov/janna/internal/delivery/grpc"
 	"github.com/vterdunov/janna/internal/delivery/grpc/middleware"
-	"github.com/vterdunov/janna/internal/virtualmachine/repository"
-	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
+
+	"github.com/vterdunov/janna/internal/appinfo"
+	vmWareRepository "github.com/vterdunov/janna/internal/virtualmachine/repository"
 )
 
 func main() {
@@ -56,19 +57,15 @@ func main() {
 	grpc_prometheus.Register(grpcServer)
 
 	// setup repositories
-	appRep := repository.NewAppRepository()
-	vmwareRep, err := repository.NewVMRepository(cfg.VMWare.URL, cfg.VMWare.Insecure)
+	appRep := appinfo.NewAppRepository()
+	vmwareRep, err := vmWareRepository.NewVMRepository(cfg.VMWare.URL, cfg.VMWare.Insecure)
 	if err != nil {
 		logger.Error("could not create VMWare connection", zap.Error(err))
 		os.Exit(1)
 	}
 
 	// register and run servers
-	// usecase := usecase.NewUsecase(appRep, vmwareRep)
-	appInfoUsecase := usecase.AppInfo{appRep}
-	vmInfoUsecase := usecase.VMInfo{vmwareRep}
-	vmDeployUsecase := usecase.VMDeploy{vmwareRep}
-	deliveryGrpc.RegisterServer(grpcServer, &appInfoUsecase, &vmInfoUsecase, &vmDeployUsecase)
+	deliveryGrpc.RegisterServer(grpcServer, appRep, vmwareRep)
 
 	var httpServer *http.Server
 
