@@ -9,6 +9,7 @@ import (
 
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/appinfo"
+	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
 	vmUsecase "github.com/vterdunov/janna/internal/virtualmachine/usecase"
 )
 
@@ -45,7 +46,11 @@ func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.
 }
 
 func (s *server) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
-	command := vmUsecase.NewVMInfo()
+	params := usecase.VMInfoRequest{
+		UUID: in.VmUuid,
+	}
+
+	command := vmUsecase.NewVMInfo(s.vmRepository, params)
 	info, err := command.Execute()
 	if err != nil {
 		return nil, err

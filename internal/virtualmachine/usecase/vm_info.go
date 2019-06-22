@@ -5,16 +5,19 @@ type VMInfo struct {
 	VMRepository
 }
 
-func NewVMInfo() *VMInfo {
-	return &VMInfo{}
+func NewVMInfo(r VMRepository, params VMInfoRequest) *VMInfo {
+	return &VMInfo{
+		params:       params,
+		VMRepository: r,
+	}
 }
 
 func (i *VMInfo) Execute() (VMInfoResponse, error) {
-	return i.VMInfo(i.params.uuid)
+	return i.VMInfo(i.params.UUID)
 }
 
 type VMInfoRequest struct {
-	uuid string
+	UUID string
 }
 
 type VMInfoResponse struct {
