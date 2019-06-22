@@ -16,7 +16,7 @@ GO_LDFLAGS := -ldflags '-extldflags "-fno-PIC -static" \
 
 GOLANGCI_LINTER_IMAGE = golangci/golangci-lint:v1.17.1
 
-all: lint docker
+all: tools generate lint docker
 
 .PHONY: docker
 docker: ## Build Docker container
@@ -47,9 +47,13 @@ lint: ## Run linters
 	@echo Linting...
 	@docker run --tty --rm -v $(CURDIR):/lint -v $$HOME/go/pkg/mod:/go/pkg/mod -w /lint $(GOLANGCI_LINTER_IMAGE) golangci-lint run
 
-.PHONY: mock
-mock:
-	@mockery -dir internal/virtualmachine/usecase -output internal/virtualmachine/usecase/ -outpkg usecase_test -case snake -all -testonly
+.PHONY: tools
+tools:
+	GO111MODULE=off go get github.com/vektra/mockery/.../
+
+.PHONY: generate
+generate:
+	go generate ./...
 
 .PHONY: help
 help: ## Display this help message

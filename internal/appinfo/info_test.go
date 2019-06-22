@@ -1,59 +1,44 @@
 package appinfo_test
 
-// import (
-// 	"errors"
-// 	"testing"
+import (
+	"testing"
 
-// 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 
-// 	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
-// )
+	"github.com/vterdunov/janna/internal/appinfo"
+	"github.com/vterdunov/janna/internal/appinfo/mocks"
+)
 
-// func TestUsecase_AppInfo(t *testing.T) {
-// 	tests := map[string]struct {
-// 		want    usecase.AppInfoResponse
-// 		wantErr bool
-// 		prepare func(*AppInfoRepository)
-// 	}{
-// 		"success": {
-// 			want:    usecase.AppInfoResponse{Commit: "test", BuildTime: "2000-01-01"},
-// 			wantErr: false,
-// 			prepare: func(m *AppInfoRepository) {
-// 				resp := usecase.AppInfoResponse{
-// 					Commit:    "test",
-// 					BuildTime: "2000-01-01",
-// 				}
-// 				m.On("AppInfo").Return(resp, nil)
-// 			},
-// 		},
-// 		"withError": {
-// 			want:    usecase.AppInfoResponse{},
-// 			wantErr: true,
-// 			prepare: func(m *AppInfoRepository) {
-// 				m.On("AppInfo").Return(usecase.AppInfoResponse{}, errors.New("smthg"))
-// 			},
-// 		},
-// 	}
+func TestUsecase_AppInfo(t *testing.T) {
+	tests := map[string]struct {
+		want    appinfo.Response
+		prepare func(*mocks.Repository)
+	}{
+		"success": {
+			want:    appinfo.Response{Commit: "test", BuildTime: "2000-01-01"},
+			prepare: func(m *mocks.Repository) {
+				resp := appinfo.Response{
+					Commit:    "test",
+					BuildTime: "2000-01-01",
+				}
+				m.On("GetAppInfo").Return(resp, nil)
+			},
+		},
+	}
 
-// 	for name, tc := range tests {
-// 		t.Run(name, func(t *testing.T) {
-// 			m := &AppInfoRepository{}
-// 			defer m.AssertExpectations(t)
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := &mocks.Repository{}
+			defer m.AssertExpectations(t)
 
-// 			if tc.prepare != nil {
-// 				tc.prepare(m)
-// 			}
+			if tc.prepare != nil {
+				tc.prepare(m)
+			}
 
-// 			u := usecase.NewAppInfo(m)
-// 			got, err := u.AppInfo()
+			command := appinfo.NewAppInfo(m)
+			got := command.Execute()
 
-// 			if tc.wantErr {
-// 				assert.Error(t, err)
-// 				return
-// 			}
-
-// 			assert.Equal(t, tc.want, got)
-// 			assert.NoError(t, err)
-// 		})
-// 	}
-// }
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}

@@ -1,60 +1,65 @@
 package usecase_test
 
-// import (
-// 	"errors"
-// 	"testing"
+import (
+	"errors"
+	"testing"
 
-// 	"github.com/stretchr/testify/assert"
-// 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
-// 	usecase "github.com/vterdunov/janna/internal/virtualmachine/usecase"
-// )
+	"github.com/vterdunov/janna/internal/virtualmachine/mocks"
+	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
+)
 
-// func TestUsecase_VMInfo(t *testing.T) {
-// 	tests := map[string]struct {
-// 		uuid    string
-// 		want    usecase.VMInfoResponse
-// 		wantErr bool
-// 		prepare func(*VMRepository)
-// 	}{
-// 		"success": {
-// 			uuid:    "ddd",
-// 			want:    usecase.VMInfoResponse{},
-// 			wantErr: false,
-// 			prepare: func(m *VMRepository) {
-// 				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, nil)
-// 			},
-// 		},
-// 		"withError": {
-// 			uuid:    "dddd",
-// 			want:    usecase.VMInfoResponse{},
-// 			wantErr: true,
-// 			prepare: func(m *VMRepository) {
-// 				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, errors.New("smthg"))
-// 			},
-// 		},
-// 	}
+func TestUsecase_VMInfo(t *testing.T) {
+	tests := map[string]struct {
+		uuid    string
+		want    usecase.VMInfoResponse
+		wantErr bool
+		prepare func(*mocks.VMRepository)
+	}{
+		"success": {
+			uuid:    "ddd",
+			want:    usecase.VMInfoResponse{},
+			wantErr: false,
+			prepare: func(m *mocks.VMRepository) {
+				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, nil)
+			},
+		},
+		"withError": {
+			uuid:    "dddd",
+			want:    usecase.VMInfoResponse{},
+			wantErr: true,
+			prepare: func(m *mocks.VMRepository) {
+				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, errors.New("smthg"))
+			},
+		},
+	}
 
-// 	for name, tc := range tests {
-// 		t.Run(name, func(t *testing.T) {
-// 			m := &VMRepository{}
-// 			defer m.AssertExpectations(t)
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := &mocks.VMRepository{}
+			defer m.AssertExpectations(t)
 
-// 			if tc.prepare != nil {
-// 				tc.prepare(m)
-// 			}
+			params := usecase.VMInfoRequest{
+				UUID: tc.uuid,
+			}
 
-// 			u := usecase.VMInfo{m}
+			if tc.prepare != nil {
+				tc.prepare(m)
+			}
 
-// 			got, err := u.VMInfo(tc.uuid)
+			c := usecase.NewVMInfo(m, params)
 
-// 			if tc.wantErr {
-// 				assert.Error(t, err)
-// 				return
-// 			}
+			got, err := c.Execute()
 
-// 			assert.Equal(t, tc.want, got)
-// 			assert.NoError(t, err)
-// 		})
-// 	}
-// }
+			if tc.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.Equal(t, tc.want, got)
+			assert.NoError(t, err)
+		})
+	}
+}
