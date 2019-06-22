@@ -1,4 +1,4 @@
-package usecase
+package virtualmachine
 
 // VMInfo is a command that implements a usecase that requests information about a Virtual Machine.
 type VMInfo struct {

@@ -1,4 +1,4 @@
-package usecase_test
+package virtualmachine_test
 
 import (
 	"errors"
@@ -7,31 +7,31 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/vterdunov/janna/internal/virtualmachine"
 	"github.com/vterdunov/janna/internal/virtualmachine/mocks"
-	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
 )
 
 func TestUsecase_VMInfo(t *testing.T) {
 	tests := map[string]struct {
 		uuid    string
-		want    usecase.VMInfoResponse
+		want    virtualmachine.VMInfoResponse
 		wantErr bool
 		prepare func(*mocks.VMRepository)
 	}{
 		"success": {
 			uuid:    "ddd",
-			want:    usecase.VMInfoResponse{},
+			want:    virtualmachine.VMInfoResponse{},
 			wantErr: false,
 			prepare: func(m *mocks.VMRepository) {
-				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, nil)
+				m.On("VMInfo", mock.AnythingOfType("string")).Return(virtualmachine.VMInfoResponse{}, nil)
 			},
 		},
 		"withError": {
 			uuid:    "dddd",
-			want:    usecase.VMInfoResponse{},
+			want:    virtualmachine.VMInfoResponse{},
 			wantErr: true,
 			prepare: func(m *mocks.VMRepository) {
-				m.On("VMInfo", mock.AnythingOfType("string")).Return(usecase.VMInfoResponse{}, errors.New("smthg"))
+				m.On("VMInfo", mock.AnythingOfType("string")).Return(virtualmachine.VMInfoResponse{}, errors.New("smthg"))
 			},
 		},
 	}
@@ -41,7 +41,7 @@ func TestUsecase_VMInfo(t *testing.T) {
 			m := &mocks.VMRepository{}
 			defer m.AssertExpectations(t)
 
-			params := usecase.VMInfoRequest{
+			params := virtualmachine.VMInfoRequest{
 				UUID: tc.uuid,
 			}
 
@@ -49,7 +49,7 @@ func TestUsecase_VMInfo(t *testing.T) {
 				tc.prepare(m)
 			}
 
-			c := usecase.NewVMInfo(m, params)
+			c := virtualmachine.NewVMInfo(m, params)
 
 			got, err := c.Execute()
 

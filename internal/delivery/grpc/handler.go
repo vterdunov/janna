@@ -9,19 +9,18 @@ import (
 
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/appinfo"
-	"github.com/vterdunov/janna/internal/virtualmachine/usecase"
-	vmUsecase "github.com/vterdunov/janna/internal/virtualmachine/usecase"
+	"github.com/vterdunov/janna/internal/virtualmachine"
 )
 
 type server struct {
 	appInfoRepository appinfo.Repository
-	vmRepository      vmUsecase.VMRepository
+	vmRepository      virtualmachine.VMRepository
 }
 
 func RegisterServer(
 	gserver *grpc.Server,
 	appInfoRepository appinfo.Repository,
-	vmRepository vmUsecase.VMRepository) {
+	vmRepository virtualmachine.VMRepository) {
 	s := &server{
 		appInfoRepository: appInfoRepository,
 		vmRepository:      vmRepository,
@@ -43,11 +42,11 @@ func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.
 }
 
 func (s *server) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
-	params := usecase.VMInfoRequest{
+	params := virtualmachine.VMInfoRequest{
 		UUID: in.VmUuid,
 	}
 
-	command := vmUsecase.NewVMInfo(s.vmRepository, params)
+	command := virtualmachine.NewVMInfo(s.vmRepository, params)
 	info, err := command.Execute()
 	if err != nil {
 		return nil, err
@@ -70,49 +69,49 @@ func (s *server) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VM
 
 func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
 	// TODO: validate incoming data
-	var crType vmUsecase.ComputerResourcesType
+	var crType virtualmachine.ComputerResourcesType
 	var crPath string
 	if in.ComputerResources != nil {
 		crPath = in.ComputerResources.Path
 
 		switch in.ComputerResources.Type.String() {
 		case "TYPE_HOST":
-			crType = vmUsecase.ComputerResourceHost
+			crType = virtualmachine.ComputerResourceHost
 		case "TYPE_CLUSTER":
-			crType = vmUsecase.ComputerResourceCluster
+			crType = virtualmachine.ComputerResourceCluster
 		case "TYPE_RP":
-			crType = vmUsecase.ComputerResourceResourcePool
+			crType = virtualmachine.ComputerResourceResourcePool
 		default:
 			return nil, errors.New("could not recognize Computer resource type. Please read documentation")
 		}
 	}
 
-	cr := vmUsecase.ComputerResources{
+	cr := virtualmachine.ComputerResources{
 		Type: crType,
 		Path: crPath,
 	}
 
-	var dsType vmUsecase.DatastoreType
+	var dsType virtualmachine.DatastoreType
 	var dsNames []string
 	if in.Datastores != nil {
 		dsNames = in.Datastores.Names
 
 		switch in.Datastores.Type.String() {
 		case "TYPE_CLUSTER":
-			dsType = vmUsecase.DatastoreCluster
+			dsType = virtualmachine.DatastoreCluster
 		case "TYPE_DATASTORE":
-			dsType = vmUsecase.DatastoreDatastore
+			dsType = virtualmachine.DatastoreDatastore
 		default:
 			return nil, errors.New("could not recognize Datastore type. Please read documentation")
 		}
 	}
 
-	datastores := vmUsecase.Datastores{
+	datastores := virtualmachine.Datastores{
 		Type:  dsType,
 		Names: dsNames,
 	}
 
-	params := vmUsecase.VMDeployRequest{
+	params := virtualmachine.VMDeployRequest{
 		Name:              in.Name,
 		Datacenter:        in.Datacenter,
 		OvaURL:            in.OvaUrl,
@@ -122,7 +121,7 @@ func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 		Datastores:        datastores,
 	}
 
-	command := vmUsecase.NewVMDeploy(s.vmRepository, params)
+	command := virtualmachine.NewVMDeploy(s.vmRepository, params)
 	r, err := command.Execute()
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-package usecase
+package virtualmachine
 
 type DatastoreType int
 
