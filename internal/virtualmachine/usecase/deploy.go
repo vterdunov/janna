@@ -19,6 +19,7 @@ const (
 	ComputerResourceResourcePool
 )
 
+// VMDeploy is a command that implements a usecase that deploy a Virtual Machine from OVA file.
 type VMDeploy struct {
 	params VMDeployRequest
 	VMRepository
