@@ -9,19 +9,18 @@ import (
 
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/appinfo"
-	vmRepository "github.com/vterdunov/janna/internal/virtualmachine/repository"
 	vmUsecase "github.com/vterdunov/janna/internal/virtualmachine/usecase"
 )
 
 type server struct {
 	appInfoRepository appinfo.AppInfoRepository
-	vmRepository      vmRepository.VMRepository
+	vmRepository      vmUsecase.VMRepository
 }
 
 func RegisterServer(
 	gserver *grpc.Server,
 	appInfoRepository appinfo.AppInfoRepository,
-	vmRepository vmRepository.VMRepository) {
+	vmRepository vmUsecase.VMRepository) {
 	s := &server{
 		appInfoRepository: appInfoRepository,
 		vmRepository:      vmRepository,

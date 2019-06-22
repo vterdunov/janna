@@ -65,7 +65,7 @@ func NewVMRepository(url string, insecure bool) (VMRepository, error) {
 	return repo, nil
 }
 
-func (v VMRepository) vmInfo(uuid string) (usecase.VMInfoResponse, error) {
+func (v VMRepository) VMInfo(uuid string) (usecase.VMInfoResponse, error) {
 	ctx := context.Background()
 	vm, err := findByUUID(ctx, v.client.Client, "DC1", uuid)
 	if err != nil {
@@ -147,7 +147,7 @@ func (t *TapeArchiveEntry) Close() error {
 	return t.f.Close()
 }
 
-func (v VMRepository) vmDeploy(params usecase.VMDeployRequest) (usecase.VMDeployResponse, error) {
+func (v VMRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMDeployResponse, error) {
 	ctx := context.Background()
 	deploy, err := newOVFx(ctx, v.client.Client, params)
 	if err != nil {

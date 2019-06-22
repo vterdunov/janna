@@ -32,7 +32,7 @@ func NewVMDeploy(r VMRepository, params VMDeployRequest) VMDeploy {
 }
 
 func (d *VMDeploy) Execute() (VMDeployResponse, error) {
-	return d.vmDeploy(d.params)
+	return d.VMDeploy(d.params)
 }
 
 type VMDeployRequest struct {

@@ -10,7 +10,7 @@ func NewVMInfo() *VMInfo {
 }
 
 func (i *VMInfo) Execute() (VMInfoResponse, error) {
-	return i.vmInfo(i.params.uuid)
+	return i.VMInfo(i.params.uuid)
 }
 
 type VMInfoRequest struct {

@@ -1,6 +1,6 @@
 package usecase
 
 type VMRepository interface {
-	vmInfo(uuid string) (VMInfoResponse, error)
-	vmDeploy(params VMDeployRequest) (VMDeployResponse, error)
+	VMInfo(uuid string) (VMInfoResponse, error)
+	VMDeploy(params VMDeployRequest) (VMDeployResponse, error)
 }
