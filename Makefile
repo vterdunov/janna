@@ -16,7 +16,7 @@ GO_LDFLAGS := -ldflags '-extldflags "-fno-PIC -static" \
 
 GOLANGCI_LINTER_IMAGE = golangci/golangci-lint:v1.17.1
 
-all: tools generate lint docker
+all: lint docker
 
 .PHONY: docker
 docker: ## Build Docker container
