@@ -10,13 +10,13 @@ func NewAppRepository() AppRepository {
 	return AppRepository{}
 }
 
-func (a AppRepository) getAppInfo() (AppInfoResponse, error) {
+func (a AppRepository) GetAppInfo() Response {
 	buildTime, commit := version.GetBuildInfo()
 
-	appInfo := AppInfoResponse{
+	appInfo := Response{
 		BuildTime: buildTime,
 		Commit:    commit,
 	}
 
-	return appInfo, nil
+	return appInfo
 }

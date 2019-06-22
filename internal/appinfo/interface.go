@@ -2,6 +2,6 @@ package appinfo
 
 // appInfoRepository abstract methods to receive information
 // about the application
-type AppInfoRepository interface {
-	getAppInfo() (AppInfoResponse, error)
+type Repository interface {
+	GetAppInfo() Response
 }

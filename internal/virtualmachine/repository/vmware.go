@@ -1,3 +1,4 @@
+// repository is a concrete implementations of virtualmachine/usecase.VMRepository interface
 package repository
 
 import (
@@ -95,56 +96,8 @@ func (v VMRepository) VMInfo(uuid string) (usecase.VMInfoResponse, error) {
 		NumEthernetCards: uint32(mVM.Summary.Config.NumEthernetCards),
 		NumVirtualDisks:  uint32(mVM.Summary.Config.NumVirtualDisks),
 	}
-	fmt.Println(mVM.Summary.OverallStatus)
-	fmt.Println(mVM.Guest.IpAddress)
 
 	return vmInfo, nil
-}
-
-type TapeArchive struct {
-	path string
-	importx.Opener
-}
-
-func (t TapeArchive) Open(name string) (io.ReadCloser, int64, error) {
-	f, _, err := t.OpenFile(t.path)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	r := tar.NewReader(f)
-
-	for {
-		h, err := r.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, 0, err
-		}
-
-		matched, err := path.Match(name, path.Base(h.Name))
-		if err != nil {
-			return nil, 0, err
-		}
-
-		if matched {
-			return &TapeArchiveEntry{r, f}, h.Size, nil
-		}
-	}
-
-	_ = f.Close()
-
-	return nil, 0, os.ErrNotExist
-}
-
-type TapeArchiveEntry struct {
-	io.Reader
-	f io.Closer
-}
-
-func (t *TapeArchiveEntry) Close() error {
-	return t.f.Close()
 }
 
 func (v VMRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMDeployResponse, error) {
@@ -158,7 +111,7 @@ func (v VMRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMDeploy
 		Client: v.client.Client,
 	}
 
-	ta := TapeArchive{
+	ta := tapeArchive{
 		path:   params.OvaURL,
 		Opener: opener,
 	}
@@ -234,6 +187,52 @@ func (v VMRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMDeploy
 	}
 
 	return usecase.VMDeployResponse{}, nil
+}
+
+type tapeArchive struct {
+	path string
+	importx.Opener
+}
+
+func (t tapeArchive) Open(name string) (io.ReadCloser, int64, error) {
+	f, _, err := t.OpenFile(t.path)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	r := tar.NewReader(f)
+
+	for {
+		h, err := r.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, 0, err
+		}
+
+		matched, err := path.Match(name, path.Base(h.Name))
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if matched {
+			return &tapeArchiveEntry{r, f}, h.Size, nil
+		}
+	}
+
+	_ = f.Close()
+
+	return nil, 0, os.ErrNotExist
+}
+
+type tapeArchiveEntry struct {
+	io.Reader
+	f io.Closer
+}
+
+func (t *tapeArchiveEntry) Close() error {
+	return t.f.Close()
 }
 
 // findByUUID find and returns VM by its UUID

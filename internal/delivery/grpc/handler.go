@@ -14,13 +14,13 @@ import (
 )
 
 type server struct {
-	appInfoRepository appinfo.AppInfoRepository
+	appInfoRepository appinfo.Repository
 	vmRepository      vmUsecase.VMRepository
 }
 
 func RegisterServer(
 	gserver *grpc.Server,
-	appInfoRepository appinfo.AppInfoRepository,
+	appInfoRepository appinfo.Repository,
 	vmRepository vmUsecase.VMRepository) {
 	s := &server{
 		appInfoRepository: appInfoRepository,
@@ -34,10 +34,7 @@ func RegisterServer(
 func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
 	command := appinfo.NewAppInfo(s.appInfoRepository)
 
-	appInfo, err := command.Execute()
-	if err != nil {
-		return nil, err
-	}
+	appInfo := command.Execute()
 
 	return &apiV1.AppInfoResponse{
 		Commit:    appInfo.Commit,
