@@ -14,15 +14,16 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	v1pb "github.com/vterdunov/janna-proto/gen/go/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
-	v1pb "github.com/vterdunov/janna-proto/gen/go/v1"
+	"github.com/vterdunov/janna/internal/appinfo"
 	"github.com/vterdunov/janna/internal/config"
 	deliveryGrpc "github.com/vterdunov/janna/internal/delivery/grpc"
 	"github.com/vterdunov/janna/internal/delivery/grpc/middleware"
-	"github.com/vterdunov/janna/internal/repository"
-	"github.com/vterdunov/janna/internal/usecase"
+	vmWareRepository "github.com/vterdunov/janna/internal/virtualmachine/repository"
 )
 
 func main() {
@@ -56,16 +57,15 @@ func main() {
 	grpc_prometheus.Register(grpcServer)
 
 	// setup repositories
-	appRep := repository.NewAppRepository()
-	vmwareRep, err := repository.NewVMWareRepository(cfg.VMWare.URL, cfg.VMWare.Insecure)
+	appRep := appinfo.NewAppRepository()
+	vmwareRep, err := vmWareRepository.NewVMRepository(cfg.VMWare.URL, cfg.VMWare.Insecure)
 	if err != nil {
 		logger.Error("could not create VMWare connection", zap.Error(err))
 		os.Exit(1)
 	}
 
 	// register and run servers
-	usecase := usecase.NewUsecase(appRep, vmwareRep)
-	deliveryGrpc.RegisterServer(grpcServer, usecase)
+	deliveryGrpc.RegisterServer(grpcServer, appRep, vmwareRep)
 
 	var httpServer *http.Server
 
@@ -79,13 +79,13 @@ func main() {
 		httpServer.ListenAndServe()
 	}()
 
+	// run GRPC server
 	logger.Info("starting GRPC server...")
 	l, err := net.Listen("tcp", ":"+cfg.Protocols.GRPC.Port) //nolint:gosec
 	if err != nil {
 		logger.Error("could not start GRPC server", zap.Error(err))
 	}
 
-	// run GRPC server
 	go func() {
 		if err = grpcServer.Serve(l); err != nil {
 			logger.Error("unenxpected error", zap.Error(err))
@@ -107,7 +107,9 @@ func main() {
 }
 
 func setupHTTPServer(ctx context.Context, cfg *config.Config, l *zap.Logger) *http.Server {
-	gwMux := runtime.NewServeMux()
+	gwMux := runtime.NewServeMux(
+		runtime.WithMetadata(addXRequestID),
+	)
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
 	grpcPort := cfg.Protocols.GRPC.Port
@@ -117,7 +119,7 @@ func setupHTTPServer(ctx context.Context, cfg *config.Config, l *zap.Logger) *ht
 
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
-	mux.Handle("/", gwMux)
+	mux.Handle("/", contextWrap(gwMux))
 
 	server := http.Server{
 		Addr:    ":" + cfg.Protocols.HTTP.Port,
@@ -125,4 +127,28 @@ func setupHTTPServer(ctx context.Context, cfg *config.Config, l *zap.Logger) *ht
 	}
 
 	return &server
+}
+
+func contextWrap(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		requestID := req.Header.Get("X-Request-Id")
+		ctx = context.WithValue(ctx, RequestIDKey, requestID)
+		h.ServeHTTP(w, req.WithContext(ctx))
+	})
+}
+
+// Key to use when setting the request ID.
+type ctxKeyRequestID int
+
+// RequestIDKey is the key that holds the unique request ID in a request context.
+const RequestIDKey ctxKeyRequestID = 0
+
+func addXRequestID(ctx context.Context, req *http.Request) metadata.MD {
+	m := map[string]string{}
+	if reqID, ok := ctx.Value(RequestIDKey).(string); ok {
+		m["request_id"] = reqID
+	}
+
+	return metadata.New(m)
 }

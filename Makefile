@@ -24,7 +24,7 @@ docker: ## Build Docker container
 
 .PHONY: compile
 compile: ## Build binary
-	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/server/server.go
+	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/server/main.go
 
 .PHONY: test
 test: ## Run tests. With -race flag
@@ -37,7 +37,7 @@ push: ## Push docker container to registry
 
 .PHONY: run
 run: ## Extract env variables from .env and run server with race detector
-	@env `cat .env | grep -v ^# | xargs` go run -race ./cmd/server/server.go
+	@env `cat .env | grep -v ^# | xargs` go run -race ./cmd/server/main.go
 
 compile-and-run: compile ## Extract env variables from .env. Compile and run server
 	@env `cat .env | grep -v ^# | xargs` ./$(PROG_NAME)
@@ -47,9 +47,13 @@ lint: ## Run linters
 	@echo Linting...
 	@docker run --tty --rm -v $(CURDIR):/lint -v $$HOME/go/pkg/mod:/go/pkg/mod -w /lint $(GOLANGCI_LINTER_IMAGE) golangci-lint run
 
-.PHONY: mock
-mock:
-	@mockery -dir internal/usecase -output internal/usecase/ -outpkg usecase_test -case snake -all -testonly
+.PHONY: tools
+tools:
+	GO111MODULE=off go get github.com/vektra/mockery/.../
+
+.PHONY: generate
+generate:
+	go generate ./...
 
 .PHONY: help
 help: ## Display this help message

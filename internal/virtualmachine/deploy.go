@@ -1,4 +1,4 @@
-package usecase
+package virtualmachine
 
 type DatastoreType int
 
@@ -19,8 +19,21 @@ const (
 	ComputerResourceResourcePool
 )
 
-func (u *Usecase) VMDeploy(params VMDeployRequest) (VMDeployResponse, error) {
-	return u.vmWareRepository.VMDeploy(params)
+// VMDeploy is a command that implements a usecase that deploy a Virtual Machine from OVA file.
+type VMDeploy struct {
+	params VMDeployRequest
+	VMRepository
+}
+
+func NewVMDeploy(r VMRepository, params VMDeployRequest) VMDeploy {
+	return VMDeploy{
+		params:       params,
+		VMRepository: r,
+	}
+}
+
+func (d *VMDeploy) Execute() (VMDeployResponse, error) {
+	return d.VMDeploy(d.params)
 }
 
 type VMDeployRequest struct {

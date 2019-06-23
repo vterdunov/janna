@@ -1,3 +1,4 @@
+// repository is a concrete implementations of virtualmachine/virtualmachine.VMRepository interface
 package repository
 
 import (
@@ -27,14 +28,14 @@ import (
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 
-	"github.com/vterdunov/janna/internal/usecase"
+	"github.com/vterdunov/janna/internal/virtualmachine"
 )
 
-type VMWareRepository struct {
+type VMRepository struct {
 	client *govmomi.Client
 }
 
-func NewVMWareRepository(url string, insecure bool) (*VMWareRepository, error) {
+func NewVMRepository(url string, insecure bool) (*VMRepository, error) {
 	ctx := context.Background()
 	u, err := soap.ParseURL(url)
 	if err != nil {
@@ -58,18 +59,18 @@ func NewVMWareRepository(url string, insecure bool) (*VMWareRepository, error) {
 		return nil, err
 	}
 
-	repo := VMWareRepository{
+	repo := VMRepository{
 		client: client,
 	}
 
 	return &repo, nil
 }
 
-func (v *VMWareRepository) VMInfo(uuid string) (usecase.VMInfoResponse, error) {
+func (v *VMRepository) VMInfo(uuid string) (virtualmachine.VMInfoResponse, error) {
 	ctx := context.Background()
 	vm, err := findByUUID(ctx, v.client.Client, "DC1", uuid)
 	if err != nil {
-		return usecase.VMInfoResponse{}, err
+		return virtualmachine.VMInfoResponse{}, err
 	}
 	refs := make([]types.ManagedObjectReference, 0)
 	refs = append(refs, vm.Reference())
@@ -81,10 +82,10 @@ func (v *VMWareRepository) VMInfo(uuid string) (usecase.VMInfoResponse, error) {
 
 	pc := property.DefaultCollector(v.client.Client)
 	if err := pc.Retrieve(ctx, refs, props, &mVM); err != nil {
-		return usecase.VMInfoResponse{}, err
+		return virtualmachine.VMInfoResponse{}, err
 	}
 
-	vmInfo := usecase.VMInfoResponse{
+	vmInfo := virtualmachine.VMInfoResponse{
 		Name:             mVM.Summary.Config.Name,
 		UUID:             mVM.Summary.Config.Uuid,
 		Template:         mVM.Summary.Config.Template,
@@ -95,70 +96,22 @@ func (v *VMWareRepository) VMInfo(uuid string) (usecase.VMInfoResponse, error) {
 		NumEthernetCards: uint32(mVM.Summary.Config.NumEthernetCards),
 		NumVirtualDisks:  uint32(mVM.Summary.Config.NumVirtualDisks),
 	}
-	fmt.Println(mVM.Summary.OverallStatus)
-	fmt.Println(mVM.Guest.IpAddress)
 
 	return vmInfo, nil
 }
 
-type TapeArchive struct {
-	path string
-	importx.Opener
-}
-
-func (t TapeArchive) Open(name string) (io.ReadCloser, int64, error) {
-	f, _, err := t.OpenFile(t.path)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	r := tar.NewReader(f)
-
-	for {
-		h, err := r.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, 0, err
-		}
-
-		matched, err := path.Match(name, path.Base(h.Name))
-		if err != nil {
-			return nil, 0, err
-		}
-
-		if matched {
-			return &TapeArchiveEntry{r, f}, h.Size, nil
-		}
-	}
-
-	_ = f.Close()
-
-	return nil, 0, os.ErrNotExist
-}
-
-type TapeArchiveEntry struct {
-	io.Reader
-	f io.Closer
-}
-
-func (t *TapeArchiveEntry) Close() error {
-	return t.f.Close()
-}
-
-func (v *VMWareRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMDeployResponse, error) {
+func (v *VMRepository) VMDeploy(params virtualmachine.VMDeployRequest) (virtualmachine.VMDeployResponse, error) {
 	ctx := context.Background()
 	deploy, err := newOVFx(ctx, v.client.Client, params)
 	if err != nil {
-		return usecase.VMDeployResponse{}, err
+		return virtualmachine.VMDeployResponse{}, err
 	}
 
 	opener := importx.Opener{
 		Client: v.client.Client,
 	}
 
-	ta := TapeArchive{
+	ta := tapeArchive{
 		path:   params.OvaURL,
 		Opener: opener,
 	}
@@ -169,12 +122,12 @@ func (v *VMWareRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMD
 
 	o, err := archive.ReadOvf("*.ovf")
 	if err != nil {
-		return usecase.VMDeployResponse{}, err
+		return virtualmachine.VMDeployResponse{}, err
 	}
 
 	e, err := archive.ReadEnvelope(o)
 	if err != nil {
-		return usecase.VMDeployResponse{}, fmt.Errorf("failed to parse ovf: %s", err)
+		return virtualmachine.VMDeployResponse{}, fmt.Errorf("failed to parse ovf: %s", err)
 	}
 
 	name := params.Name
@@ -198,10 +151,10 @@ func (v *VMWareRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMD
 
 	spec, err := m.CreateImportSpec(ctx, ovfContent, rp, ds, cisp)
 	if err != nil {
-		return usecase.VMDeployResponse{}, errors.Wrap(err, "Could not create VM spec")
+		return virtualmachine.VMDeployResponse{}, errors.Wrap(err, "Could not create VM spec")
 	}
 	if spec.Error != nil {
-		return usecase.VMDeployResponse{}, errors.New(spec.Error[0].LocalizedMessage)
+		return virtualmachine.VMDeployResponse{}, errors.New(spec.Error[0].LocalizedMessage)
 	}
 
 	if params.Annotation != "" {
@@ -216,24 +169,70 @@ func (v *VMWareRepository) VMDeploy(params usecase.VMDeployRequest) (usecase.VMD
 	lease, err := rp.ImportVApp(ctx, spec.ImportSpec, deploy.Folder, deploy.Host)
 	if err != nil {
 		err = errors.Wrap(err, "Could not import Virtual Appliance")
-		return usecase.VMDeployResponse{}, err
+		return virtualmachine.VMDeployResponse{}, err
 	}
 
 	info, err := lease.Wait(ctx, spec.FileItem)
 	if err != nil {
 		err = errors.Wrap(err, "error while waiting lease")
-		return usecase.VMDeployResponse{}, err
+		return virtualmachine.VMDeployResponse{}, err
 	}
 
 	u := lease.StartUpdater(ctx, info)
 	defer u.Done()
 	for _, item := range info.Items {
 		if err = deploy.Upload(ctx, lease, item, archive); err != nil {
-			return usecase.VMDeployResponse{}, errors.Wrapf(err, "Could not upload disk to VMWare, disk: %v", item.Path)
+			return virtualmachine.VMDeployResponse{}, errors.Wrapf(err, "Could not upload disk to VMWare, disk: %v", item.Path)
 		}
 	}
 
-	return usecase.VMDeployResponse{}, nil
+	return virtualmachine.VMDeployResponse{}, nil
+}
+
+type tapeArchive struct {
+	path string
+	importx.Opener
+}
+
+func (t tapeArchive) Open(name string) (io.ReadCloser, int64, error) {
+	f, _, err := t.OpenFile(t.path)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	r := tar.NewReader(f)
+
+	for {
+		h, err := r.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, 0, err
+		}
+
+		matched, err := path.Match(name, path.Base(h.Name))
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if matched {
+			return &tapeArchiveEntry{r, f}, h.Size, nil
+		}
+	}
+
+	_ = f.Close()
+
+	return nil, 0, os.ErrNotExist
+}
+
+type tapeArchiveEntry struct {
+	io.Reader
+	f io.Closer
+}
+
+func (t *tapeArchiveEntry) Close() error {
+	return t.f.Close()
 }
 
 // findByUUID find and returns VM by its UUID
@@ -276,7 +275,7 @@ type ovfx struct {
 
 // newOVFx creates a new (ovfx)deployment object.
 // It choose needed resources
-func newOVFx(ctx context.Context, client *vim25.Client, params usecase.VMDeployRequest) (*ovfx, error) {
+func newOVFx(ctx context.Context, client *vim25.Client, params virtualmachine.VMDeployRequest) (*ovfx, error) {
 	d := ovfx{
 		client: client,
 	}
@@ -339,17 +338,17 @@ func (o *ovfx) networkMap(e *ovf.Envelope) (p []types.OvfNetworkMapping) {
 	return p
 }
 
-func (o *ovfx) chooseComputerResource(ctx context.Context, resType usecase.ComputerResourcesType, path string) error {
+func (o *ovfx) chooseComputerResource(ctx context.Context, resType virtualmachine.ComputerResourcesType, path string) error {
 	switch resType {
-	case usecase.ComputerResourceHost:
+	case virtualmachine.ComputerResourceHost:
 		if err := o.computerResourceWithHost(ctx, path); err != nil {
 			return err
 		}
-	case usecase.ComputerResourceCluster:
+	case virtualmachine.ComputerResourceCluster:
 		if err := o.computerResourceWithCluster(ctx, path); err != nil {
 			return err
 		}
-	case usecase.ComputerResourceResourcePool:
+	case virtualmachine.ComputerResourceResourcePool:
 		if err := o.computerResourceWithResourcePool(ctx, path); err != nil {
 			return err
 		}
@@ -417,13 +416,13 @@ func (o *ovfx) chooseDatacenter(ctx context.Context, dcName string) error {
 	return nil
 }
 
-func (o *ovfx) chooseDatastore(ctx context.Context, dsType usecase.DatastoreType, names []string) error {
+func (o *ovfx) chooseDatastore(ctx context.Context, dsType virtualmachine.DatastoreType, names []string) error {
 	switch dsType {
-	case usecase.DatastoreCluster:
+	case virtualmachine.DatastoreCluster:
 		if err := o.chooseDatastoreWithCluster(ctx, names); err != nil {
 			return err
 		}
-	case usecase.DatastoreDatastore:
+	case virtualmachine.DatastoreDatastore:
 		if err := o.chooseDatastoreWithDatastore(ctx, names); err != nil {
 			return err
 		}
