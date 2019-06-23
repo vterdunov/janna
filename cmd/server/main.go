@@ -79,13 +79,13 @@ func main() {
 		httpServer.ListenAndServe()
 	}()
 
+	// run GRPC server
 	logger.Info("starting GRPC server...")
 	l, err := net.Listen("tcp", ":"+cfg.Protocols.GRPC.Port) //nolint:gosec
 	if err != nil {
 		logger.Error("could not start GRPC server", zap.Error(err))
 	}
 
-	// run GRPC server
 	go func() {
 		if err = grpcServer.Serve(l); err != nil {
 			logger.Error("unenxpected error", zap.Error(err))

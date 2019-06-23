@@ -3,11 +3,13 @@ package grpc
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
+	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/appinfo"
 	"github.com/vterdunov/janna/internal/virtualmachine"
 )
@@ -17,10 +19,7 @@ type server struct {
 	vmRepository      virtualmachine.VMRepository
 }
 
-func RegisterServer(
-	gserver *grpc.Server,
-	appInfoRepository appinfo.Repository,
-	vmRepository virtualmachine.VMRepository) {
+func RegisterServer(gserver *grpc.Server, appInfoRepository appinfo.Repository, vmRepository virtualmachine.VMRepository) {
 	s := &server{
 		appInfoRepository: appInfoRepository,
 		vmRepository:      vmRepository,
@@ -31,6 +30,9 @@ func RegisterServer(
 }
 
 func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
+	fmt.Println("RERE")
+	spew.Dump(ctx)
+	fmt.Println("RERE")
 	command := appinfo.NewAppInfo(s.appInfoRepository)
 
 	appInfo := command.Execute()

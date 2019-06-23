@@ -24,7 +24,7 @@ docker: ## Build Docker container
 
 .PHONY: compile
 compile: ## Build binary
-	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/server/server.go
+	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/server/main.go
 
 .PHONY: test
 test: ## Run tests. With -race flag
@@ -37,7 +37,7 @@ push: ## Push docker container to registry
 
 .PHONY: run
 run: ## Extract env variables from .env and run server with race detector
-	@env `cat .env | grep -v ^# | xargs` go run -race ./cmd/server/server.go
+	@env `cat .env | grep -v ^# | xargs` go run -race ./cmd/server/main.go
 
 compile-and-run: compile ## Extract env variables from .env. Compile and run server
 	@env `cat .env | grep -v ^# | xargs` ./$(PROG_NAME)
