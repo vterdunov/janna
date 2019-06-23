@@ -3,9 +3,7 @@ package grpc
 import (
 	"context"
 	"errors"
-	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -30,9 +28,6 @@ func RegisterServer(gserver *grpc.Server, appInfoRepository appinfo.Repository, 
 }
 
 func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
-	fmt.Println("RERE")
-	spew.Dump(ctx)
-	fmt.Println("RERE")
 	command := appinfo.NewAppInfo(s.appInfoRepository)
 
 	appInfo := command.Execute()
