@@ -1,6 +1,6 @@
 package virtualmachine
 
-// VMList is a command that implements a usecase that retreive Virtual Machines list.
+// VMList is a command that implements a usecase that retrieve Virtual Machines list.
 type VMList struct {
 	params VMListRequest
 	VMRepository

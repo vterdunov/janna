@@ -144,7 +144,7 @@ func (s *server) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VM
 		return nil, err
 	}
 
-	var vms []*apiV1.VMListResponse_VMMap
+	vms := make([]*apiV1.VMListResponse_VMMap, 0, len(r))
 	for _, v := range r {
 		vm := apiV1.VMListResponse_VMMap{
 			Name: v.Name,
@@ -162,5 +162,5 @@ func (s *server) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VM
 }
 
 func (s *server) VMPower(ctx context.Context, in *apiV1.VMPowerRequest) (*apiV1.VMPowerResponse, error) {
-	return nil, errors.New("Not Implemented")
+	return nil, errors.New("not implemented")
 }
