@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/davecgh/go-spew/spew"
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -139,17 +138,27 @@ func (s *server) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VM
 		ResourcePool: in.ResourcePool,
 	}
 
-	spew.Dump(params)
-
 	command := virtualmachine.NewVMList(s.vmRepository, params)
 	r, err := command.Execute()
 	if err != nil {
 		return nil, err
 	}
-	spew.Dump(r)
 
-	resp := virtualmachine.VMListResponse{}
-	return resp, errors.New("Not Implemented")
+	var vms []*apiV1.VMListResponse_VMMap
+	for _, v := range r {
+		vm := apiV1.VMListResponse_VMMap{
+			Name: v.Name,
+			Uuid: v.UUID,
+		}
+
+		vms = append(vms, &vm)
+	}
+
+	resp := apiV1.VMListResponse{
+		VirtualMachines: vms,
+	}
+
+	return &resp, nil
 }
 
 func (s *server) VMPower(ctx context.Context, in *apiV1.VMPowerRequest) (*apiV1.VMPowerResponse, error) {
