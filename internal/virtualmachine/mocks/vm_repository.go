@@ -51,3 +51,26 @@ func (_m *VMRepository) VMInfo(uuid string) (virtualmachine.VMInfoResponse, erro
 
 	return r0, r1
 }
+
+// VMList provides a mock function with given fields: _a0
+func (_m *VMRepository) VMList(_a0 virtualmachine.VMListRequest) ([]virtualmachine.VMListResponse, error) {
+	ret := _m.Called(_a0)
+
+	var r0 []virtualmachine.VMListResponse
+	if rf, ok := ret.Get(0).(func(virtualmachine.VMListRequest) []virtualmachine.VMListResponse); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]virtualmachine.VMListResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(virtualmachine.VMListRequest) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
