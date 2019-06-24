@@ -74,6 +74,10 @@ github.com/vmware/govmomi v0.20.1 h1:7b/SeTUB3tER8ZLGLLLH3xcnB2xeuLULXmfPFqPSRZA
 github.com/vmware/govmomi v0.20.1/go.mod h1:URlwyTFZX72RmxtxuaFL2Uj3fD1JTvZdx59bHWk6aFU=
 github.com/vterdunov/janna-proto v0.0.0-20190610145925-2a97cb3cc6bc h1:Z4ECGa26D2OK6j4+dA8u46dp0FqXIjg6Yno3oVvNBlg=
 github.com/vterdunov/janna-proto v0.0.0-20190610145925-2a97cb3cc6bc/go.mod h1:EFzYMS7yKxm7IVodfX329zLzyEk6qg3hZf/Ru94IIE8=
+github.com/vterdunov/janna-proto v0.0.0-20190624142055-1f2714313efc h1:nmy9jpkDlgP1Id5/5mtMOc9YdoIo90JdtcfyD09LiEw=
+github.com/vterdunov/janna-proto v0.0.0-20190624142055-1f2714313efc/go.mod h1:EFzYMS7yKxm7IVodfX329zLzyEk6qg3hZf/Ru94IIE8=
+github.com/vterdunov/janna-proto v0.0.0-20190624143327-d13d8f27bde3 h1:uLrOBbBUs/BEwlytxBSdDK9+EY/JNID7NQLV8q0XjI8=
+github.com/vterdunov/janna-proto v0.0.0-20190624143327-d13d8f27bde3/go.mod h1:EFzYMS7yKxm7IVodfX329zLzyEk6qg3hZf/Ru94IIE8=
 go.uber.org/atomic v1.4.0 h1:cxzIVoETapQEqDhQu3QfnvXAV4AlzcvUCxkVUFw3+EU=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/multierr v1.1.0 h1:HoEmRHQPVSqub6w2z2d2EOVs2fjyFRGyofhKuyDq0QI=

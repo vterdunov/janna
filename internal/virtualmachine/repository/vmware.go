@@ -22,6 +22,7 @@ import (
 	"github.com/vmware/govmomi/ovf"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/session"
+	"github.com/vmware/govmomi/view"
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/progress"
@@ -187,6 +188,42 @@ func (v *VMRepository) VMDeploy(params virtualmachine.VMDeployRequest) (virtualm
 	}
 
 	return virtualmachine.VMDeployResponse{}, nil
+}
+
+func (v *VMRepository) VMList(params virtualmachine.VMListRequest) ([]virtualmachine.VMListResponse, error) {
+	ctx := context.Background()
+	root, err := chooseRoot(ctx, v.client.Client, params)
+	if err != nil {
+		return nil, err
+	}
+
+	m := view.NewManager(v.client.Client)
+	cv, err := m.CreateContainerView(ctx, root, []string{"VirtualMachine"}, true)
+	if err != nil {
+		return nil, err
+	}
+
+	defer cv.Destroy(ctx)
+
+	// Retrieve summary property for all machines
+	// Reference: http://pubs.vmware.com/vsphere-60/topic/com.vmware.wssdk.apiref.doc/vim.VirtualMachine.html
+	var vms []mo.VirtualMachine
+	err = cv.Retrieve(ctx, []string{"VirtualMachine"}, []string{"summary"}, &vms)
+	if err != nil {
+		return nil, err
+	}
+
+	resVMs := []virtualmachine.VMListResponse{}
+	for i := range vms {
+		vm := &vms[i]
+		vmUUID := virtualmachine.VMListResponse{
+			Name: vm.Summary.Config.Name,
+			UUID: vm.Summary.Config.Uuid,
+		}
+		resVMs = append(resVMs, vmUUID)
+	}
+
+	return resVMs, nil
 }
 
 type tapeArchive struct {
@@ -637,4 +674,32 @@ func newProgressLogger(prefix string, logger *log.Logger) *progressLogger {
 	go p.loopA()
 
 	return p
+}
+
+func chooseRoot(ctx context.Context, c *vim25.Client, params virtualmachine.VMListRequest) (types.ManagedObjectReference, error) {
+	var ref types.ManagedObjectReference
+	f := find.NewFinder(c, true)
+	dc, err := f.DatacenterOrDefault(ctx, params.Datacenter)
+	if err != nil {
+		return ref, err
+	}
+
+	if params.Folder != "" {
+		f.SetDatacenter(dc)
+		rp, err := f.FolderOrDefault(ctx, params.Folder)
+		if err != nil {
+			return ref, err
+		}
+		return rp.Reference(), nil
+	}
+
+	if params.ResourcePool != "" {
+		f.SetDatacenter(dc)
+		rp, err := f.ResourcePoolOrDefault(ctx, params.ResourcePool)
+		if err != nil {
+			return ref, err
+		}
+		return rp.Reference(), nil
+	}
+	return dc.Reference(), nil
 }
