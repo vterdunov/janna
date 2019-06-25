@@ -9,11 +9,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog"
 	v1pb "github.com/vterdunov/janna-proto/gen/go/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -43,12 +45,14 @@ func main() {
 
 	grpc_zap.ReplaceGrpcLogger(logger)
 
+	zerol := zerolog.New(os.Stderr).With().Timestamp().Logger()
+
 	// setup GRPC server with middlewares
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			grpc_zap.UnaryServerInterceptor(logger),
+			// grpc_zap.UnaryServerInterceptor(logger),
 			// grpc_recovery.UnaryServerInterceptor(),
-			middleware.NoopInterceptor,
+			middleware.LoggingInterceptor(zerol),
 			grpc_prometheus.UnaryServerInterceptor,
 		)),
 	)
@@ -108,7 +112,7 @@ func main() {
 
 func setupHTTPServer(ctx context.Context, cfg *config.Config, l *zap.Logger) *http.Server {
 	gwMux := runtime.NewServeMux(
-		runtime.WithMetadata(addXRequestID),
+		runtime.WithMetadata(populateXRequestID),
 	)
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
@@ -144,11 +148,16 @@ type ctxKeyRequestID int
 // RequestIDKey is the key that holds the unique request ID in a request context.
 const RequestIDKey ctxKeyRequestID = 0
 
-func addXRequestID(ctx context.Context, req *http.Request) metadata.MD {
+func populateXRequestID(ctx context.Context, req *http.Request) metadata.MD {
 	m := map[string]string{}
-	if reqID, ok := ctx.Value(RequestIDKey).(string); ok {
+	reqID, ok := ctx.Value(RequestIDKey).(string)
+	if ok && reqID != "" {
 		m["request_id"] = reqID
+		return metadata.New(m)
 	}
+
+	id := uuid.New()
+	m["request_id"] = id.String()
 
 	return metadata.New(m)
 }
