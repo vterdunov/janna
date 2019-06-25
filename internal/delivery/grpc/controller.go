@@ -130,3 +130,37 @@ func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 
 	return &resp, nil
 }
+
+func (s *server) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VMListResponse, error) {
+	params := virtualmachine.VMListRequest{
+		Datacenter:   in.Datacenter,
+		Folder:       in.Folder,
+		ResourcePool: in.ResourcePool,
+	}
+
+	command := virtualmachine.NewVMList(s.vmRepository, params)
+	r, err := command.Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	vms := make([]*apiV1.VMListResponse_VMMap, 0, len(r))
+	for _, v := range r {
+		vm := apiV1.VMListResponse_VMMap{
+			Name: v.Name,
+			Uuid: v.UUID,
+		}
+
+		vms = append(vms, &vm)
+	}
+
+	resp := apiV1.VMListResponse{
+		VirtualMachines: vms,
+	}
+
+	return &resp, nil
+}
+
+func (s *server) VMPower(ctx context.Context, in *apiV1.VMPowerRequest) (*apiV1.VMPowerResponse, error) {
+	return nil, errors.New("not implemented")
+}
