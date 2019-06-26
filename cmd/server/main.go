@@ -11,13 +11,12 @@ import (
 
 	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	v1pb "github.com/vterdunov/janna-proto/gen/go/v1"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
@@ -35,24 +34,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create logger, which we'll use and give to other components.
-	logger, err := zap.NewProduction()
-	if err != nil {
-		fmt.Printf("Could not create logger. Err: %s\n", err)
-		os.Exit(1)
-	}
-	defer logger.Sync()
-
-	grpc_zap.ReplaceGrpcLogger(logger)
-
-	zerol := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	// setup GRPC server with middlewares
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			// grpc_zap.UnaryServerInterceptor(logger),
-			// grpc_recovery.UnaryServerInterceptor(),
-			middleware.LoggingInterceptor(zerol),
+			grpc_recovery.UnaryServerInterceptor(),
+			middleware.LoggingInterceptor(logger),
 			grpc_prometheus.UnaryServerInterceptor,
 		)),
 	)
@@ -64,7 +52,7 @@ func main() {
 	appRep := appinfo.NewAppRepository()
 	vmwareRep, err := vmWareRepository.NewVMRepository(cfg.VMWare.URL, cfg.VMWare.Insecure)
 	if err != nil {
-		logger.Error("could not create VMWare connection", zap.Error(err))
+		logger.Error().Err(err).Msg("could not create VMWare connection")
 		os.Exit(1)
 	}
 
@@ -77,22 +65,22 @@ func main() {
 	defer cancel()
 
 	// run HTTP server
-	logger.Info("starting HTTP Gateway proxy...")
-	httpServer = setupHTTPServer(ctx, cfg, logger)
+	logger.Info().Msg("starting HTTP Gateway proxy...")
+	httpServer = setupHTTPServer(ctx, cfg, &logger)
 	go func() {
 		httpServer.ListenAndServe()
 	}()
 
 	// run GRPC server
-	logger.Info("starting GRPC server...")
+	logger.Info().Msg("starting GRPC server...")
 	l, err := net.Listen("tcp", ":"+cfg.Protocols.GRPC.Port) //nolint:gosec
 	if err != nil {
-		logger.Error("could not start GRPC server", zap.Error(err))
+		logger.Error().Err(err).Msg("could not start GRPC server")
 	}
 
 	go func() {
 		if err = grpcServer.Serve(l); err != nil {
-			logger.Error("unenxpected error", zap.Error(err))
+			logger.Error().Err(err).Msg("unenxpected error")
 			os.Exit(1)
 		}
 	}()
@@ -103,14 +91,14 @@ func main() {
 	<-quit
 
 	// graceful shutdown
-	logger.Info("shutting down HTTP Gateway proxy...")
+	logger.Info().Msg("shutting down HTTP Gateway proxy...")
 	httpServer.Shutdown(ctx)
-	logger.Info("shutting down gRPC server...")
+	logger.Info().Msg("shutting down gRPC server...")
 	grpcServer.GracefulStop()
 
 }
 
-func setupHTTPServer(ctx context.Context, cfg *config.Config, l *zap.Logger) *http.Server {
+func setupHTTPServer(ctx context.Context, cfg *config.Config, l *zerolog.Logger) *http.Server {
 	gwMux := runtime.NewServeMux(
 		runtime.WithMetadata(populateXRequestID),
 	)
@@ -118,7 +106,7 @@ func setupHTTPServer(ctx context.Context, cfg *config.Config, l *zap.Logger) *ht
 
 	grpcPort := cfg.Protocols.GRPC.Port
 	if err := v1pb.RegisterJannaAPIHandlerFromEndpoint(ctx, gwMux, ":"+grpcPort, opts); err != nil {
-		l.Error("failed to start HTTP gateway", zap.Error(err))
+		l.Error().Err(err).Msg("failed to start HTTP gateway")
 	}
 
 	mux := http.NewServeMux()

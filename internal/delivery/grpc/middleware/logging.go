@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"path"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -16,21 +17,27 @@ func LoggingInterceptor(l zerolog.Logger) grpc.UnaryServerInterceptor {
 			reqID = md["request_id"][0]
 		}
 
+		service := path.Dir(info.FullMethod)[1:]
+		method := path.Base(info.FullMethod)
+
 		l.Info().
 			Str("request_id", reqID).
-			Str("method", info.FullMethod).
+			Str("service", service).
+			Str("method", method).
 			Msg("Calling endpoint")
+
+		resp, err := handler(ctx, req)
 
 		defer func(begin time.Time) {
 			l.Info().
 				Str("request_id", reqID).
-				Str("method", info.FullMethod).
+				Str("service", service).
+				Str("method", method).
 				Str("took", time.Since(begin).String()).
+				Err(err).
 				Msg("Called endpoint")
 		}(time.Now())
 
-		// TODO: log errors
-
-		return handler(ctx, req)
+		return resp, err
 	}
 }
