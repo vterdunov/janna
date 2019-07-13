@@ -226,6 +226,23 @@ func (v *VMRepository) VMList(params virtualmachine.VMListRequest) ([]virtualmac
 	return resVMs, nil
 }
 
+func (v *VMRepository) IsVMExist(ctx context.Context, name, dc string) (bool, error) {
+	f := find.NewFinder(v.client.Client, false)
+	datacenter, err := f.DatacenterOrDefault(ctx, dc)
+	if err != nil {
+		return false, err
+	}
+	f.SetDatacenter(datacenter)
+
+	_, err = f.VirtualMachine(ctx, name)
+	switch err.(type) {
+	case *find.NotFoundError:
+		return false, nil
+	default:
+		return true, err
+	}
+}
+
 type tapeArchive struct {
 	path string
 	importx.Opener

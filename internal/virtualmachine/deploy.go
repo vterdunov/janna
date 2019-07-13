@@ -1,5 +1,9 @@
 package virtualmachine
 
+import (
+	"context"
+)
+
 type DatastoreType int
 
 const (
@@ -22,6 +26,7 @@ const (
 // VMDeploy is a command that implements a usecase that deploy a Virtual Machine from OVA file.
 type VMDeploy struct {
 	params VMDeployRequest
+
 	VMRepository
 }
 
@@ -33,6 +38,16 @@ func NewVMDeploy(r VMRepository, params VMDeployRequest) VMDeploy {
 }
 
 func (d *VMDeploy) Execute() (VMDeployResponse, error) {
+	ctx := context.Background()
+	exist, err := d.IsVMExist(ctx, d.params.Name, d.params.Datacenter)
+	if err != nil {
+		return VMDeployResponse{}, err
+	}
+
+	if exist {
+		return VMDeployResponse{}, ErrVMAlreadyExist
+	}
+
 	return d.VMDeploy(d.params)
 }
 

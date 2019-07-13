@@ -3,6 +3,8 @@ module github.com/vterdunov/janna
 go 1.12
 
 require (
+	github.com/davecgh/go-spew v1.1.1
+	github.com/go-kit/kit v0.8.0
 	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0

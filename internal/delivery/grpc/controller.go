@@ -4,30 +4,36 @@ import (
 	"context"
 	"errors"
 
-	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/appinfo"
+	"github.com/vterdunov/janna/internal/delivery/grpc/middleware"
+	"github.com/vterdunov/janna/internal/log"
 	"github.com/vterdunov/janna/internal/virtualmachine"
 )
 
-type server struct {
+// service implements apiV1.JannaAPIServer
+type service struct {
 	appInfoRepository appinfo.Repository
 	vmRepository      virtualmachine.VMRepository
 }
 
 func RegisterServer(gserver *grpc.Server, appInfoRepository appinfo.Repository, vmRepository virtualmachine.VMRepository) {
-	s := &server{
+	s := service{
 		appInfoRepository: appInfoRepository,
 		vmRepository:      vmRepository,
 	}
 
-	apiV1.RegisterJannaAPIServer(gserver, s)
+	logger := log.NewLogger()
+	srv := middleware.NewMiddleware(s, logger)
+
+	apiV1.RegisterJannaAPIServer(gserver, srv)
 	reflection.Register(gserver)
 }
 
-func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
+func (s service) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
 	command := appinfo.NewAppInfo(s.appInfoRepository)
 
 	appInfo := command.Execute()
@@ -38,7 +44,7 @@ func (s *server) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.
 	}, nil
 }
 
-func (s *server) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
+func (s service) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
 	params := virtualmachine.VMInfoRequest{
 		UUID: in.VmUuid,
 	}
@@ -64,7 +70,7 @@ func (s *server) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VM
 	return &resp, nil
 }
 
-func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
+func (s service) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
 	// TODO: validate incoming data
 	var crType virtualmachine.ComputerResourcesType
 	var crPath string
@@ -131,7 +137,7 @@ func (s *server) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 	return &resp, nil
 }
 
-func (s *server) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VMListResponse, error) {
+func (s service) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VMListResponse, error) {
 	params := virtualmachine.VMListRequest{
 		Datacenter:   in.Datacenter,
 		Folder:       in.Folder,
@@ -161,6 +167,6 @@ func (s *server) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VM
 	return &resp, nil
 }
 
-func (s *server) VMPower(ctx context.Context, in *apiV1.VMPowerRequest) (*apiV1.VMPowerResponse, error) {
+func (s service) VMPower(ctx context.Context, in *apiV1.VMPowerRequest) (*apiV1.VMPowerResponse, error) {
 	return nil, errors.New("not implemented")
 }
