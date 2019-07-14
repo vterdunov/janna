@@ -101,11 +101,11 @@ func (v *VMRepository) VMInfo(uuid string) (virtualmachine.VMInfoResponse, error
 	return vmInfo, nil
 }
 
-func (v *VMRepository) VMDeploy(params virtualmachine.VMDeployRequest) (virtualmachine.VMDeployResponse, error) {
-	ctx := context.Background()
+// VMDeploy deploys an OVA file to VMWare
+func (v *VMRepository) VMDeploy(ctx context.Context, params virtualmachine.VMDeployRequest) (virtualmachine.VMDeployResponse, error) {
 	deploy, err := newOVFx(ctx, v.client.Client, params)
 	if err != nil {
-		return virtualmachine.VMDeployResponse{}, err
+		return virtualmachine.VMDeployResponse{}, errors.WithStack(err)
 	}
 
 	opener := importx.Opener{

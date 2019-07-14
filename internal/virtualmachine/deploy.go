@@ -48,7 +48,7 @@ func (d *VMDeploy) Execute() (VMDeployResponse, error) {
 		return VMDeployResponse{}, ErrVMAlreadyExist
 	}
 
-	return d.VMDeploy(d.params)
+	return d.VMDeploy(ctx, d.params)
 }
 
 type VMDeployRequest struct {
