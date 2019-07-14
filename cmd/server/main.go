@@ -22,6 +22,7 @@ import (
 	"github.com/vterdunov/janna/internal/appinfo"
 	"github.com/vterdunov/janna/internal/config"
 	deliveryGrpc "github.com/vterdunov/janna/internal/delivery/grpc"
+	"github.com/vterdunov/janna/internal/delivery/grpc/middleware"
 	"github.com/vterdunov/janna/internal/log"
 	vmWareRepository "github.com/vterdunov/janna/internal/virtualmachine/repository"
 )
@@ -36,10 +37,15 @@ func main() {
 	}
 
 	// setup GRPC server with middlewares
+	var grpcMiddlewares []grpc.UnaryServerInterceptor
+	grpcMiddlewares = append(grpcMiddlewares, grpc_prometheus.UnaryServerInterceptor)
+	if !cfg.Debug {
+		grpcMiddlewares = append(grpcMiddlewares, grpc_recovery.UnaryServerInterceptor())
+	}
+
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-			grpc_recovery.UnaryServerInterceptor(),
-			grpc_prometheus.UnaryServerInterceptor,
+			grpcMiddlewares...,
 		)),
 	)
 
@@ -55,7 +61,9 @@ func main() {
 	}
 
 	// register and run servers
-	deliveryGrpc.RegisterServer(grpcServer, appRep, vmwareRep)
+	service := deliveryGrpc.NewService(appRep, vmwareRep)
+	service = middleware.NewLoggingMiddleware(service, logger)
+	deliveryGrpc.RegisterServer(grpcServer, service, logger)
 
 	var httpServer *http.Server
 

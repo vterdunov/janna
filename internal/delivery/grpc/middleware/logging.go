@@ -4,13 +4,17 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
+	"github.com/pkg/errors"
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/log"
+	"github.com/vterdunov/janna/internal/virtualmachine"
 )
 
-func NewMiddleware(next apiV1.JannaAPIServer, logger log.Logger) apiV1.JannaAPIServer {
+func NewLoggingMiddleware(next apiV1.JannaAPIServer, logger log.Logger) apiV1.JannaAPIServer {
 	service := ErrorHandlingMiddleware{
 		logger: logger,
 		next:   next,
@@ -41,14 +45,14 @@ func (m *ErrorHandlingMiddleware) AppInfo(ctx context.Context, in *apiV1.AppInfo
 		)
 
 		if err != nil {
-			logger.Error(err, "called endpoint")
+			logger.Error(err, "call failed")
 		} else {
-			logger.Info("called endpoint")
+			logger.Info("call finished")
 		}
 
 	}(begin)
 
-	return res, err
+	return res, translateError(err)
 }
 
 func (m *ErrorHandlingMiddleware) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
@@ -68,14 +72,14 @@ func (m *ErrorHandlingMiddleware) VMInfo(ctx context.Context, in *apiV1.VMInfoRe
 		)
 
 		if err != nil {
-			logger.Error(err, "called endpoint")
+			logger.Error(err, "call failed")
 		} else {
-			logger.Info("called endpoint")
+			logger.Info("call finished")
 		}
 
 	}(begin)
 
-	return res, err
+	return res, translateError(err)
 }
 
 func (m *ErrorHandlingMiddleware) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
@@ -83,6 +87,14 @@ func (m *ErrorHandlingMiddleware) VMDeploy(ctx context.Context, in *apiV1.VMDepl
 	logger := withRequestID(ctx, m.logger)
 	logger = logger.WithFields(
 		"method", "VMDeploy",
+		"vm_name", in.Name,
+		"ova_url", in.OvaUrl,
+		"datacenter", in.Datacenter,
+		"folder", in.Folder,
+		"annotation", in.Annotation,
+		"networks", in.Networks,
+		"datastores", in.Datastores.String(),
+		"computer_resources", in.ComputerResources.String(),
 	)
 
 	logger.Info("calling endpoint")
@@ -95,14 +107,14 @@ func (m *ErrorHandlingMiddleware) VMDeploy(ctx context.Context, in *apiV1.VMDepl
 		)
 
 		if err != nil {
-			logger.Error(err, "called endpoint")
+			logger.Error(err, "call failed")
 		} else {
-			logger.Info("called endpoint")
+			logger.Info("call finished")
 		}
 
 	}(begin)
 
-	return res, err
+	return res, translateError(err)
 }
 
 func (m *ErrorHandlingMiddleware) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VMListResponse, error) {
@@ -110,6 +122,9 @@ func (m *ErrorHandlingMiddleware) VMList(ctx context.Context, in *apiV1.VMListRe
 	logger := withRequestID(ctx, m.logger)
 	logger = logger.WithFields(
 		"method", "VMList",
+		"datacenter", in.Datacenter,
+		"folder", in.Folder,
+		"resource_pool", in.ResourcePool,
 	)
 
 	logger.Info("calling endpoint")
@@ -122,14 +137,14 @@ func (m *ErrorHandlingMiddleware) VMList(ctx context.Context, in *apiV1.VMListRe
 		)
 
 		if err != nil {
-			logger.Error(err, "called endpoint")
+			logger.Error(err, "call failed")
 		} else {
-			logger.Info("called endpoint")
+			logger.Info("call finished")
 		}
 
 	}(begin)
 
-	return res, err
+	return res, translateError(err)
 }
 
 func (m *ErrorHandlingMiddleware) VMPower(ctx context.Context, in *apiV1.VMPowerRequest) (*apiV1.VMPowerResponse, error) {
@@ -137,6 +152,8 @@ func (m *ErrorHandlingMiddleware) VMPower(ctx context.Context, in *apiV1.VMPower
 	logger := withRequestID(ctx, m.logger)
 	logger = logger.WithFields(
 		"method", "VMPower",
+		"vm_uuid", in.VmUuid,
+		"vm_power_request_body", in.VmPowerRequestBody.String(),
 	)
 
 	logger.Info("calling endpoint")
@@ -149,14 +166,14 @@ func (m *ErrorHandlingMiddleware) VMPower(ctx context.Context, in *apiV1.VMPower
 		)
 
 		if err != nil {
-			logger.Error(err, "called endpoint")
+			logger.Error(err, "call failed")
 		} else {
-			logger.Info("called endpoint")
+			logger.Info("call finished")
 		}
 
 	}(begin)
 
-	return res, err
+	return res, translateError(err)
 }
 
 func withRequestID(ctx context.Context, logger log.Logger) log.Logger {
@@ -170,4 +187,35 @@ func withRequestID(ctx context.Context, logger log.Logger) log.Logger {
 	)
 
 	return l
+}
+
+type statusError interface {
+	GRPCStatus() *status.Status
+}
+
+func isGrpcStatusError(err error) bool {
+	_, ok := err.(statusError)
+	return ok
+}
+
+// translateError translate business logic erros to transport level errors.
+// May become a clumsy because the need to check all exposed errors
+// from all packages with business logic.
+func translateError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	if isGrpcStatusError(err) {
+		return err
+	}
+
+	switch errors.Cause(err) {
+	case virtualmachine.ErrVMAlreadyExist:
+		err = status.Errorf(codes.AlreadyExists, err.Error())
+	default:
+		err = status.Errorf(codes.Internal, err.Error())
+	}
+
+	return err
 }
