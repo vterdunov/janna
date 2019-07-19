@@ -101,11 +101,11 @@ func (v *VMRepository) VMInfo(uuid string) (virtualmachine.VMInfoResponse, error
 	return vmInfo, nil
 }
 
-func (v *VMRepository) VMDeploy(params virtualmachine.VMDeployRequest) (virtualmachine.VMDeployResponse, error) {
-	ctx := context.Background()
+// VMDeploy deploys an OVA file to VMWare
+func (v *VMRepository) VMDeploy(ctx context.Context, params virtualmachine.VMDeployRequest) (virtualmachine.VMDeployResponse, error) {
 	deploy, err := newOVFx(ctx, v.client.Client, params)
 	if err != nil {
-		return virtualmachine.VMDeployResponse{}, err
+		return virtualmachine.VMDeployResponse{}, errors.WithStack(err)
 	}
 
 	opener := importx.Opener{
@@ -224,6 +224,23 @@ func (v *VMRepository) VMList(params virtualmachine.VMListRequest) ([]virtualmac
 	}
 
 	return resVMs, nil
+}
+
+func (v *VMRepository) IsVMExist(ctx context.Context, name, dc string) (bool, error) {
+	f := find.NewFinder(v.client.Client, false)
+	datacenter, err := f.DatacenterOrDefault(ctx, dc)
+	if err != nil {
+		return false, err
+	}
+	f.SetDatacenter(datacenter)
+
+	_, err = f.VirtualMachine(ctx, name)
+	switch err.(type) {
+	case *find.NotFoundError:
+		return false, nil
+	default:
+		return true, err
+	}
 }
 
 type tapeArchive struct {
