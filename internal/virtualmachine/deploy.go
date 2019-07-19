@@ -2,6 +2,11 @@ package virtualmachine
 
 import (
 	"context"
+	"log"
+
+	"github.com/RichardKnop/machinery/v1"
+	"github.com/RichardKnop/machinery/v1/config"
+	"github.com/RichardKnop/machinery/v1/tasks"
 )
 
 type DatastoreType int
@@ -27,28 +32,74 @@ const (
 type VMDeploy struct {
 	params VMDeployRequest
 
+	StatusStorager
 	VMRepository
 }
 
-func NewVMDeploy(r VMRepository, params VMDeployRequest) VMDeploy {
+func NewVMDeploy(r VMRepository, params VMDeployRequest, statusStorage StatusStorager) VMDeploy {
 	return VMDeploy{
-		params:       params,
-		VMRepository: r,
+		params:         params,
+		VMRepository:   r,
+		StatusStorager: statusStorage,
 	}
 }
 
-func (d *VMDeploy) Execute() (VMDeployResponse, error) {
-	ctx := context.Background()
-	exist, err := d.IsVMExist(ctx, d.params.Name, d.params.Datacenter)
+func (d *VMDeploy) Execute(ctx context.Context) (VMDeployResponse, error) {
+	// exist, err := d.IsVMExist(ctx, d.params.Name, d.params.Datacenter)
+	// if err != nil {
+	// 	return VMDeployResponse{}, err
+	// }
+
+	// if exist {
+	// 	return VMDeployResponse{}, ErrVMAlreadyExist
+	// }
+
+	t := d.NewTask()
+	t.Str("stage", "start")
+
+	cnf := &config.Config{
+		Broker:        "redis://redis:6379",
+		DefaultQueue:  "machinery_tasks",
+		ResultBackend: "redis://redis:6379",
+		Redis:         &config.RedisConfig{},
+	}
+
+	server, err := machinery.NewServer(cnf)
 	if err != nil {
+		log.Printf("err %v", err.Error())
 		return VMDeployResponse{}, err
 	}
 
-	if exist {
-		return VMDeployResponse{}, ErrVMAlreadyExist
+	// server.RegisterTask("add", Add)
+
+	signature := &tasks.Signature{
+		Name: "add",
+		Args: []tasks.Arg{
+			{
+				Type:  "int64",
+				Value: 1,
+			},
+			{
+				Type:  "int64",
+				Value: 1,
+			},
+		},
 	}
 
-	return d.VMDeploy(ctx, d.params)
+	asyncResult, err := server.SendTask(signature)
+	if err != nil {
+		log.Printf("err %v", err.Error())
+		return VMDeployResponse{}, err
+	}
+
+	taskID := asyncResult.GetState().TaskUUID
+	_ = taskID
+
+	// taskState, err := server.GetBackend().GetState(taskState.TaskUUID)
+
+	// temporary. for testing purposes
+	return VMDeployResponse{}, ErrVMAlreadyExist
+	// return d.VMDeploy(ctx, d.params)
 }
 
 type VMDeployRequest struct {
@@ -74,18 +125,4 @@ type ComputerResources struct {
 type Datastores struct {
 	Type  DatastoreType
 	Names []string
-}
-
-// StatusStorager represents behavior of storage that keeps deploy jobs statuses
-type StatusStorager interface {
-	NewTask() TaskStatuser
-	FindByID(id string) TaskStatuser
-}
-
-// TaskStatuser represents behavior of every single task
-type TaskStatuser interface {
-	ID() string
-	Str(keyvals ...string) TaskStatuser
-	StrArr(key string, arr []string) TaskStatuser
-	Get() (statuses map[string]interface{})
 }

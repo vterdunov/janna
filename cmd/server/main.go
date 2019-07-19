@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/vterdunov/janna/internal/jobstatus"
+
 	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -60,8 +62,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	statusStorage := jobstatus.NewStorage()
 	// register and run servers
-	service := deliveryGrpc.NewService(appRep, vmwareRep)
+	service := deliveryGrpc.NewService(appRep, vmwareRep, statusStorage)
 	service = middleware.NewLoggingMiddleware(service, logger)
 	deliveryGrpc.RegisterServer(grpcServer, service, logger)
 

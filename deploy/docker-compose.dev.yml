@@ -1,0 +1,45 @@
+---
+version: '2'
+
+services:
+  redis:
+    image: redis:5.0.5-alpine
+    restart: unless-stopped
+    container_name: janna-redis
+    env_file: ../.env
+    # command: redis-server --requirepass "${REDIS_PASSWORD}"
+    # logging:
+    #   driver: none
+
+  redis-commander:
+    image: marian/rebrow
+    container_name: redis-ui
+    restart: unless-stopped
+    env_file: ../.env
+    ports:
+      - "8090:5001"
+    logging:
+      driver: none
+
+
+  server:
+    build:
+      context: ../
+      dockerfile: build/Dockerfile.server
+    restart: unless-stopped
+    container_name: server
+    env_file: ../.env
+    ports:
+      - '8081:8081'
+    depends_on:
+      - 'redis'
+
+  worker:
+    build:
+      context: ../
+      dockerfile: build/Dockerfile.worker
+    restart: unless-stopped
+    container_name: worker
+    env_file: ../.env
+    depends_on:
+      - 'redis'

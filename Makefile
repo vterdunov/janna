@@ -26,6 +26,10 @@ docker: ## Build Docker container
 compile: ## Build binary
 	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/server/main.go
 
+.PHONY: compile-worker
+compile-worker: ## Build binary
+	$(GO_VARS) go build -v $(GO_LDFLAGS) -o worker ./cmd/worker/main.go
+
 .PHONY: test
 test: ## Run tests. With -race flag
 	go test -race -count=100 -v ./...
@@ -54,6 +58,10 @@ tools:
 .PHONY: generate
 generate:
 	go generate ./...
+
+.PHONY: run-compose
+run-compose: compile compile-worker
+	docker-compose -f deploy/docker-compose.dev.yml up --build
 
 .PHONY: help
 help: ## Display this help message
