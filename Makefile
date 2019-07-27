@@ -23,12 +23,16 @@ docker: ## Build Docker container
 	docker build --tag=$(IMAGE_NAME):$(COMMIT) --tag=$(IMAGE_NAME):latest --build-arg=GITHUB_TOKEN=${GITHUB_TOKEN} --file build/Dockerfile .
 
 .PHONY: compile
-compile: ## Build binary
+compile: ## Build server binary
 	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/server/main.go
 
 .PHONY: compile-worker
-compile-worker: ## Build binary
+compile-worker: ## Build worker binary
 	$(GO_VARS) go build -v $(GO_LDFLAGS) -o worker ./cmd/worker/main.go
+
+.PHONY: compile-worker-debug
+compile-worker-debug: ## Build worker without compiler optomizations
+	$(GO_VARS) go build -v -gcflags "all=-N -l" -o worker ./cmd/worker/main.go
 
 .PHONY: test
 test: ## Run tests. With -race flag
@@ -61,6 +65,10 @@ generate:
 
 .PHONY: run-compose
 run-compose: compile compile-worker
+	docker-compose -f deploy/docker-compose.dev.yml up --build
+
+.PHONY: run-compose-debug
+run-compose-debug: compile compile-worker-debug
 	docker-compose -f deploy/docker-compose.dev.yml up --build
 
 .PHONY: help

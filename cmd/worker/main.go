@@ -1,17 +1,21 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/base64"
+	"encoding/gob"
 	"log"
 	"os"
+
+	"github.com/pkg/errors"
+
+	"github.com/vterdunov/janna/internal/virtualmachine"
 
 	"github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/config"
 )
 
 func main() {
-	fmt.Println("Hello Worker!")
-
 	cnf := &config.Config{
 		Broker:        "redis://redis:6379",
 		DefaultQueue:  "machinery_tasks",
@@ -25,7 +29,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	server.RegisterTask("add", Add)
+	if err := server.RegisterTask("vm_deploy", VMDeploy); err != nil {
+		log.Printf("Could not register task: %s", err.Error())
+		os.Exit(1)
+	}
 
 	worker := server.NewWorker("worker-1", 5)
 	err = worker.Launch()
@@ -36,10 +43,35 @@ func main() {
 
 }
 
-func Add(args ...int64) (int64, error) {
-	sum := int64(0)
-	for _, arg := range args {
-		sum += arg
+func VMDeploy(params string) error {
+	sDec, err := base64.StdEncoding.DecodeString(params)
+	if err != nil {
+		return errors.Wrap(err, "could not decode parameters from base64")
 	}
-	return sum, nil
+
+	r := bytes.NewReader(sDec)
+	dec := gob.NewDecoder(r)
+
+	var deployParams virtualmachine.VMDeployRequest
+	err = dec.Decode(&deployParams)
+	if err != nil {
+		return errors.Wrap(err, "could not decode parameters from bytes")
+	}
+
+	return nil
 }
+
+// func sliceToMap(slice []string) map[string]string {
+// 	sliceLen := len(slice)
+// 	resMap := make(map[string]string, sliceLen)
+
+// 	for i := 0; i < len(slice); i += 2 {
+// 		if i == sliceLen-1 {
+// 			break
+// 		}
+
+// 		resMap[slice[i]] = slice[i+1]
+// 	}
+
+// 	return resMap
+// }

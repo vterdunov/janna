@@ -16,19 +16,19 @@ import (
 // Service implements apiV1.JannaAPIServer
 type Service struct {
 	appInfoRepository appinfo.Repository
-	statusStorage     virtualmachine.StatusStorager
+	worker            virtualmachine.Worker
 	vmRepository      virtualmachine.VMRepository
 }
 
 func NewService(
 	appInfoRepository appinfo.Repository,
 	vmRepository virtualmachine.VMRepository,
-	statusStorage virtualmachine.StatusStorager,
+	worker virtualmachine.Worker,
 ) apiV1.JannaAPIServer {
 	return Service{
 		appInfoRepository: appInfoRepository,
 		vmRepository:      vmRepository,
-		statusStorage:     statusStorage,
+		worker:            worker,
 	}
 }
 
@@ -128,7 +128,7 @@ func (s Service) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 		Datastores:        datastores,
 	}
 
-	command := virtualmachine.NewVMDeploy(s.vmRepository, params, s.statusStorage)
+	command := virtualmachine.NewVMDeploy(s.vmRepository, params, s.worker)
 	r, err := command.Execute(ctx)
 	if err != nil {
 		return nil, err
