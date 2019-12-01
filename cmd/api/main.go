@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/vterdunov/janna/internal/virtualmachine/worker"
+	"github.com/vterdunov/janna/internal/virtualmachine/producer"
 
 	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -62,14 +62,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	worker, err := worker.NewWorker("redis://redis:6379")
+	producer, err := producer.NewProducer("redis://redis:6379")
 	if err != nil {
 		logger.Error(err, "could not create Worker")
 		os.Exit(1)
 	}
 
 	// register and run servers
-	service := deliveryGrpc.NewService(appRep, vmwareRep, worker)
+	service := deliveryGrpc.NewService(appRep, vmwareRep, producer)
 	service = middleware.NewLoggingMiddleware(service, logger)
 	deliveryGrpc.RegisterServer(grpcServer, service, logger)
 

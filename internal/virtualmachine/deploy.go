@@ -27,15 +27,15 @@ const (
 type VMDeploy struct {
 	params VMDeployRequest
 
-	Worker
+	Producer
 	VMRepository
 }
 
-func NewVMDeploy(r VMRepository, params VMDeployRequest, worker Worker) VMDeploy {
+func NewVMDeploy(r VMRepository, params VMDeployRequest, producer Producer) VMDeploy {
 	return VMDeploy{
 		params:       params,
 		VMRepository: r,
-		Worker:       worker,
+		Producer:     producer,
 	}
 }
 
@@ -50,7 +50,7 @@ func (d *VMDeploy) Execute(ctx context.Context) (VMDeployResponse, error) {
 	// 	return VMDeployResponse{}, ErrVMAlreadyExist
 	// }
 
-	return d.VMDeploy(ctx, d.params)
+	return d.VMDeployTask(ctx, d.params)
 }
 
 type VMDeployRequest struct {

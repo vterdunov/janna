@@ -9,7 +9,7 @@ type VMRepository interface {
 	VMInfo(uuid string) (VMInfoResponse, error)
 }
 
-// Worker describes some worker that can perform (often) long-running tasks
-type Worker interface {
-	VMDeploy(context.Context, VMDeployRequest) (VMDeployResponse, error)
+// Producer describes some producer that can sends tasks to distributed workers
+type Producer interface {
+	VMDeployTask(context.Context, VMDeployRequest) (VMDeployResponse, error)
 }
