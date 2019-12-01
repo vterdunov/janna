@@ -1,6 +1,6 @@
 module github.com/vterdunov/janna
 
-go 1.12
+go 1.13
 
 require (
 	github.com/RichardKnop/machinery v1.6.7

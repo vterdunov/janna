@@ -9,8 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/vterdunov/janna/internal/virtualmachine"
-
 	"github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/config"
 )
@@ -29,8 +27,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := server.RegisterTask("vm_deploy", VMDeploy); err != nil {
-		log.Printf("Could not register task: %s", err.Error())
+	if registerErr := server.RegisterTask("vm_deploy", VMDeploy); registerErr != nil {
+		log.Printf("Could not register task: %s", registerErr.Error())
 		os.Exit(1)
 	}
 
@@ -43,6 +41,46 @@ func main() {
 
 }
 
+type VMDeployRequest struct {
+	Name       string
+	Datacenter string
+	OvaURL     string
+	Folder     string
+	Annotation string
+
+	ComputerResources
+	Datastores
+}
+
+type ComputerResources struct {
+	Path string
+	Type ComputerResourcesType
+}
+
+type Datastores struct {
+	Type  DatastoreType
+	Names []string
+}
+
+type DatastoreType int
+
+const (
+	// Datastore Type Enum
+	DatastoreInvalid DatastoreType = iota
+	DatastoreCluster
+	DatastoreDatastore
+)
+
+type ComputerResourcesType int
+
+const (
+	// Computer Resources Enum
+	ComputerResourceInvalid ComputerResourcesType = iota
+	ComputerResourceHost
+	ComputerResourceCluster
+	ComputerResourceResourcePool
+)
+
 func VMDeploy(params string) error {
 	sDec, err := base64.StdEncoding.DecodeString(params)
 	if err != nil {
@@ -52,7 +90,7 @@ func VMDeploy(params string) error {
 	r := bytes.NewReader(sDec)
 	dec := gob.NewDecoder(r)
 
-	var deployParams virtualmachine.VMDeployRequest
+	var deployParams VMDeployRequest
 	err = dec.Decode(&deployParams)
 	if err != nil {
 		return errors.Wrap(err, "could not decode parameters from bytes")
@@ -60,18 +98,3 @@ func VMDeploy(params string) error {
 
 	return nil
 }
-
-// func sliceToMap(slice []string) map[string]string {
-// 	sliceLen := len(slice)
-// 	resMap := make(map[string]string, sliceLen)
-
-// 	for i := 0; i < len(slice); i += 2 {
-// 		if i == sliceLen-1 {
-// 			break
-// 		}
-
-// 		resMap[slice[i]] = slice[i+1]
-// 	}
-
-// 	return resMap
-// }

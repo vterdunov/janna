@@ -22,11 +22,11 @@ services:
   #     driver: none
 
 
-  server:
+  api:
     build:
       context: ../
-      dockerfile: build/Dockerfile.server
-    container_name: server
+      dockerfile: build/Dockerfile.api
+    container_name: api
     env_file: ../.env
     ports:
       - '8081:8081'
@@ -41,11 +41,10 @@ services:
     build:
       context: ../
       dockerfile: build/Dockerfile.worker
-    container_name: worker
     env_file: ../.env
     restart: unless-stopped
-    ports:
-      - '2345:2345'
+    # ports:
+    #   - '2345:2345'
     depends_on:
       - 'redis'
     cap_add:

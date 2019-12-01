@@ -3,12 +3,12 @@ package middleware
 import (
 	"time"
 
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/pkg/errors"
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/log"
 	"github.com/vterdunov/janna/internal/virtualmachine"

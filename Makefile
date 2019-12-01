@@ -24,10 +24,7 @@ docker: ## Build Docker container
 
 .PHONY: compile
 compile: ## Build server binary
-	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/server/main.go
-
-.PHONY: compile-worker
-compile-worker: ## Build worker binary
+	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/api/main.go
 	$(GO_VARS) go build -v $(GO_LDFLAGS) -o worker ./cmd/worker/main.go
 
 .PHONY: compile-worker-debug
@@ -64,8 +61,8 @@ generate:
 	go generate ./...
 
 .PHONY: run-compose
-run-compose: compile compile-worker
-	docker-compose -f deploy/docker-compose.dev.yml up --build
+run-compose: compile
+	docker-compose -f deploy/docker-compose.dev.yml up --build --scale worker=3
 
 .PHONY: run-compose-debug
 run-compose-debug: compile compile-worker-debug
