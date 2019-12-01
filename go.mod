@@ -14,7 +14,7 @@ require (
 	github.com/rs/zerolog v1.14.3
 	github.com/stretchr/testify v1.3.0
 	github.com/vmware/govmomi v0.20.1
-	github.com/vterdunov/janna-proto v0.0.0-20190624143327-d13d8f27bde3
+	github.com/vterdunov/janna-proto v0.0.0-20191201152223-1bbf97b46497
 	golang.org/x/net v0.0.0-20190311183353-d8887717615a
 	google.golang.org/grpc v1.21.1
 )

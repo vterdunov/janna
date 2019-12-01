@@ -17,18 +17,12 @@ import (
 type Service struct {
 	appInfoRepository appinfo.Repository
 	producer          virtualmachine.Producer
-	vmRepository      virtualmachine.VMRepository
 }
 
-func NewService(
-	appInfoRepository appinfo.Repository,
-	vmRepository virtualmachine.VMRepository,
-	producer virtualmachine.Producer,
-) apiV1.JannaAPIServer {
+func NewService(i appinfo.Repository, p virtualmachine.Producer) apiV1.JannaAPIServer {
 	return Service{
-		appInfoRepository: appInfoRepository,
-		vmRepository:      vmRepository,
-		producer:          producer,
+		appInfoRepository: i,
+		producer:          p,
 	}
 }
 
@@ -53,22 +47,14 @@ func (s Service) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VM
 		UUID: in.VmUuid,
 	}
 
-	command := virtualmachine.NewVMInfo(s.vmRepository, params)
-	info, err := command.Execute()
+	command := virtualmachine.NewVMInfo(params, s.producer)
+	info, err := command.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := apiV1.VMInfoResponse{
-		Name:             info.Name,
-		Uuid:             info.UUID,
-		GuestId:          info.GuestID,
-		Annotation:       info.Annotation,
-		PowerState:       info.PowerState,
-		NumCpu:           info.NumCPU,
-		NumEthernetCards: info.NumEthernetCards,
-		NumVirtualDisks:  info.NumVirtualDisks,
-		Template:         info.Template,
+		TaskId: info.TaskID,
 	}
 
 	return &resp, nil
@@ -128,7 +114,7 @@ func (s Service) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 		Datastores:        datastores,
 	}
 
-	command := virtualmachine.NewVMDeploy(s.vmRepository, params, s.producer)
+	command := virtualmachine.NewVMDeploy(params, s.producer)
 	r, err := command.Execute(ctx)
 	if err != nil {
 		return nil, err
@@ -148,8 +134,8 @@ func (s Service) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VM
 		ResourcePool: in.ResourcePool,
 	}
 
-	command := virtualmachine.NewVMList(s.vmRepository, params)
-	r, err := command.Execute()
+	command := virtualmachine.NewVMList(params, s.producer)
+	r, err := command.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}

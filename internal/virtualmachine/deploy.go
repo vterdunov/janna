@@ -28,14 +28,12 @@ type VMDeploy struct {
 	params VMDeployRequest
 
 	Producer
-	VMRepository
 }
 
-func NewVMDeploy(r VMRepository, params VMDeployRequest, producer Producer) VMDeploy {
+func NewVMDeploy(params VMDeployRequest, producer Producer) VMDeploy {
 	return VMDeploy{
-		params:       params,
-		VMRepository: r,
-		Producer:     producer,
+		params:   params,
+		Producer: producer,
 	}
 }
 

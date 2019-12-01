@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/gob"
+	"errors"
 
 	"github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/config"
@@ -69,4 +70,8 @@ func (w *Producer) VMDeployTask(ctx context.Context, params virtualmachine.VMDep
 	return virtualmachine.VMDeployResponse{
 		TaskID: taskID,
 	}, nil
+}
+
+func (w *Producer) VMInfoTask(ctx context.Context, params virtualmachine.VMInfoRequest) (virtualmachine.VMInfoResponse, error) {
+	return virtualmachine.VMInfoResponse{}, errors.New("test")
 }
