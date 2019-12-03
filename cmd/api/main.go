@@ -26,7 +26,6 @@ import (
 	deliveryGrpc "github.com/vterdunov/janna/internal/delivery/grpc"
 	"github.com/vterdunov/janna/internal/delivery/grpc/middleware"
 	"github.com/vterdunov/janna/internal/log"
-	vmWareRepository "github.com/vterdunov/janna/internal/virtualmachine/repository"
 )
 
 func main() {
@@ -56,11 +55,6 @@ func main() {
 
 	// setup repositories
 	appRep := appinfo.NewAppRepository()
-	vmwareRep, err := vmWareRepository.NewVMRepository(cfg.VMWare.URL, cfg.VMWare.Insecure)
-	if err != nil {
-		logger.Error(err, "could not create VMWare connection")
-		os.Exit(1)
-	}
 
 	producer, err := producer.NewProducer("redis://redis:6379")
 	if err != nil {
@@ -69,7 +63,7 @@ func main() {
 	}
 
 	// register and run servers
-	service := deliveryGrpc.NewService(appRep, vmwareRep, producer)
+	service := deliveryGrpc.NewService(appRep, producer)
 	service = middleware.NewLoggingMiddleware(service, logger)
 	deliveryGrpc.RegisterServer(grpcServer, service, logger)
 

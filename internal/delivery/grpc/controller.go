@@ -140,20 +140,9 @@ func (s Service) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VM
 		return nil, err
 	}
 
-	vms := make([]*apiV1.VMListResponse_VMMap, 0, len(r))
-	for _, v := range r {
-		vm := apiV1.VMListResponse_VMMap{
-			Name: v.Name,
-			Uuid: v.UUID,
-		}
-
-		vms = append(vms, &vm)
-	}
-
 	resp := apiV1.VMListResponse{
-		VirtualMachines: vms,
+		TaskId: r.TaskID,
 	}
-
 	return &resp, nil
 }
 
