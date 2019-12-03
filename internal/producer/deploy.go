@@ -38,16 +38,6 @@ func NewVMDeploy(params VMDeployRequest, producer Producer) VMDeploy {
 }
 
 func (d *VMDeploy) Execute(ctx context.Context) (VMDeployResponse, error) {
-	// TODO: for speed up testing it was commented. Uncommend after distributed task was implemented
-	// exist, err := d.IsVMExist(ctx, d.params.Name, d.params.Datacenter)
-	// if err != nil {
-	// 	return VMDeployResponse{}, err
-	// }
-
-	// if exist {
-	// 	return VMDeployResponse{}, ErrVMAlreadyExist
-	// }
-
 	return d.VMDeployTask(ctx, d.params)
 }
 
