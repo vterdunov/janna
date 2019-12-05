@@ -10,16 +10,16 @@ import (
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/appinfo"
 	"github.com/vterdunov/janna/internal/log"
-	"github.com/vterdunov/janna/internal/virtualmachine"
+	"github.com/vterdunov/janna/internal/producer"
 )
 
 // Service implements apiV1.JannaAPIServer
 type Service struct {
 	appInfoRepository appinfo.Repository
-	producer          virtualmachine.Producer
+	producer          producer.Producer
 }
 
-func NewService(i appinfo.Repository, p virtualmachine.Producer) apiV1.JannaAPIServer {
+func NewService(i appinfo.Repository, p producer.Producer) apiV1.JannaAPIServer {
 	return Service{
 		appInfoRepository: i,
 		producer:          p,
@@ -43,11 +43,11 @@ func (s Service) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.
 }
 
 func (s Service) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
-	params := virtualmachine.VMInfoRequest{
+	params := producer.VMInfoRequest{
 		UUID: in.VmUuid,
 	}
 
-	command := virtualmachine.NewVMInfo(params, s.producer)
+	command := producer.NewVMInfo(params, s.producer)
 	info, err := command.Execute(ctx)
 	if err != nil {
 		return nil, err
@@ -62,49 +62,49 @@ func (s Service) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VM
 
 func (s Service) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
 	// TODO: validate incoming data
-	var crType virtualmachine.ComputerResourcesType
+	var crType producer.ComputerResourcesType
 	var crPath string
 	if in.ComputerResources != nil {
 		crPath = in.ComputerResources.Path
 
 		switch in.ComputerResources.Type.String() {
 		case "TYPE_HOST":
-			crType = virtualmachine.ComputerResourceHost
+			crType = producer.ComputerResourceHost
 		case "TYPE_CLUSTER":
-			crType = virtualmachine.ComputerResourceCluster
+			crType = producer.ComputerResourceCluster
 		case "TYPE_RP":
-			crType = virtualmachine.ComputerResourceResourcePool
+			crType = producer.ComputerResourceResourcePool
 		default:
 			return nil, errors.New("could not recognize Computer resource type. Please read documentation")
 		}
 	}
 
-	cr := virtualmachine.ComputerResources{
+	cr := producer.ComputerResources{
 		Type: crType,
 		Path: crPath,
 	}
 
-	var dsType virtualmachine.DatastoreType
+	var dsType producer.DatastoreType
 	var dsNames []string
 	if in.Datastores != nil {
 		dsNames = in.Datastores.Names
 
 		switch in.Datastores.Type.String() {
 		case "TYPE_CLUSTER":
-			dsType = virtualmachine.DatastoreCluster
+			dsType = producer.DatastoreCluster
 		case "TYPE_DATASTORE":
-			dsType = virtualmachine.DatastoreDatastore
+			dsType = producer.DatastoreDatastore
 		default:
 			return nil, errors.New("could not recognize Datastore type. Please read documentation")
 		}
 	}
 
-	datastores := virtualmachine.Datastores{
+	datastores := producer.Datastores{
 		Type:  dsType,
 		Names: dsNames,
 	}
 
-	params := virtualmachine.VMDeployRequest{
+	params := producer.VMDeployRequest{
 		Name:              in.Name,
 		Datacenter:        in.Datacenter,
 		OvaURL:            in.OvaUrl,
@@ -114,7 +114,7 @@ func (s Service) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 		Datastores:        datastores,
 	}
 
-	command := virtualmachine.NewVMDeploy(params, s.producer)
+	command := producer.NewVMDeploy(params, s.producer)
 	r, err := command.Execute(ctx)
 	if err != nil {
 		return nil, err
@@ -128,13 +128,13 @@ func (s Service) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 }
 
 func (s Service) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VMListResponse, error) {
-	params := virtualmachine.VMListRequest{
+	params := producer.VMListRequest{
 		Datacenter:   in.Datacenter,
 		Folder:       in.Folder,
 		ResourcePool: in.ResourcePool,
 	}
 
-	command := virtualmachine.NewVMList(params, s.producer)
+	command := producer.NewVMList(params, s.producer)
 	r, err := command.Execute(ctx)
 	if err != nil {
 		return nil, err

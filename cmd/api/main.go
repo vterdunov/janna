@@ -9,8 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/vterdunov/janna/internal/virtualmachine/producer"
-
 	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -26,6 +24,7 @@ import (
 	deliveryGrpc "github.com/vterdunov/janna/internal/delivery/grpc"
 	"github.com/vterdunov/janna/internal/delivery/grpc/middleware"
 	"github.com/vterdunov/janna/internal/log"
+	"github.com/vterdunov/janna/internal/producer"
 )
 
 func main() {
