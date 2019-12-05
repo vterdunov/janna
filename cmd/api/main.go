@@ -6,8 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+	"strings"
 
 	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -15,6 +14,8 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
@@ -71,31 +72,65 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// run HTTP server
-	logger.Info("starting HTTP Gateway proxy...")
-	httpServer = setupHTTPServer(ctx, cfg, logger)
-	go func() {
-		httpServer.ListenAndServe()
-	}()
+	// // run HTTP server
+	// logger.Info("starting HTTP Gateway proxy...")
+	// httpServer = setupHTTPServer(ctx, cfg, logger)
+	// go func() {
+	// 	httpServer.ListenAndServe()
+	// }()
 
-	// run GRPC server
-	logger.Info("starting GRPC server...")
-	l, err := net.Listen("tcp", ":"+cfg.Protocols.GRPC.Port) //nolint:gosec
+	// // run GRPC server
+	// logger.Info("starting GRPC server...")
+	// l, err := net.Listen("tcp", ":"+cfg.Protocols.GRPC.Port) //nolint:gosec
+	// if err != nil {
+	// 	logger.Error(err, "could not start GRPC server")
+	// }
+
+	// go func() {
+	// 	if err = grpcServer.Serve(l); err != nil {
+	// 		logger.Error(err, "unenxpected error")
+	// 		os.Exit(1)
+	// 	}
+	// }()
+
+	// quit := make(chan os.Signal, 1)
+	// signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	fmt.Println("TEST")
+	listen, err := net.Listen("tcp", ":8081")
 	if err != nil {
-		logger.Error(err, "could not start GRPC server")
+		logger.Error(err, "")
+		os.Exit(1)
 	}
-
+	fmt.Printf("Listen %s", listen.Addr())
+	service2 := deliveryGrpc.NewService(appRep, producer)
+	grpcServer2 := grpc.NewServer()
+	v1pb.RegisterJannaAPIServer(grpcServer2, service2)
+	mux := http.NewServeMux()
+	gwmux := runtime.NewServeMux()
+	mux.Handle("/", gwmux)
+	dopts := []grpc.DialOption{grpc.WithInsecure()}
+	err = v1pb.RegisterJannaAPIHandlerFromEndpoint(ctx, gwmux, listen.Addr().String(), dopts)
+	srv := &http.Server{
+		Handler: grpcHandlerFunc(grpcServer, mux),
+	}
+	fin := make(chan struct{})
 	go func() {
-		if err = grpcServer.Serve(l); err != nil {
-			logger.Error(err, "unenxpected error")
+		<-ctx.Done()
+		fmt.Printf("shutting down shared server...")
+		srv.Shutdown(ctx)
+		close(fin)
+	}()
+	go func() {
+		err = srv.Serve(listen)
+		if err != nil {
+			fmt.Errorf("ListenAndServe: %v", err)
 			os.Exit(1)
 		}
 	}()
+	<-fin
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	<-quit
+	// <-quit
 
 	// graceful shutdown
 	logger.Info("shutting down HTTP Gateway proxy...")
@@ -103,6 +138,21 @@ func main() {
 	logger.Info("shutting down gRPC server...")
 	grpcServer.GracefulStop()
 
+}
+
+func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
+	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		contentType := r.Header.Get("Content-Type")
+		fmt.Printf("grpcHandlerFunc: r.ProtoMajor=%v, method=%v, contentType=%v\n",
+			r.ProtoMajor, r.Method, contentType)
+
+		if r.ProtoMajor == 2 && strings.Contains(contentType, "application/grpc") {
+			grpcServer.ServeHTTP(w, r)
+		} else {
+			otherHandler.ServeHTTP(w, r)
+		}
+	}), &http2.Server{})
 }
 
 func setupHTTPServer(ctx context.Context, cfg *config.Config, l log.Logger) *http.Server {
