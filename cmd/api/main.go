@@ -33,7 +33,7 @@ func main() {
 
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Printf("Could not read config. Err: %s\n", err)
+		logger.Error(err, "could not read config")
 		os.Exit(1)
 	}
 
@@ -50,102 +50,66 @@ func main() {
 		)),
 	)
 
+	// register metrics
 	grpc_prometheus.EnableHandlingTimeHistogram()
 	grpc_prometheus.Register(grpcServer)
 
-	// setup repositories
-	appRep := appinfo.NewAppRepository()
-
+	// create publisher
 	producer, err := producer.NewProducer("redis://redis:6379")
 	if err != nil {
 		logger.Error(err, "could not create Worker")
 		os.Exit(1)
 	}
 
-	// register and run servers
-	service := deliveryGrpc.NewService(appRep, producer)
-	service = middleware.NewLoggingMiddleware(service, logger)
-	deliveryGrpc.RegisterServer(grpcServer, service, logger)
-
-	var httpServer *http.Server
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// // run HTTP server
-	// logger.Info("starting HTTP Gateway proxy...")
-	// httpServer = setupHTTPServer(ctx, cfg, logger)
-	// go func() {
-	// 	httpServer.ListenAndServe()
-	// }()
-
-	// // run GRPC server
-	// logger.Info("starting GRPC server...")
-	// l, err := net.Listen("tcp", ":"+cfg.Protocols.GRPC.Port) //nolint:gosec
-	// if err != nil {
-	// 	logger.Error(err, "could not start GRPC server")
-	// }
-
-	// go func() {
-	// 	if err = grpcServer.Serve(l); err != nil {
-	// 		logger.Error(err, "unenxpected error")
-	// 		os.Exit(1)
-	// 	}
-	// }()
-
-	// quit := make(chan os.Signal, 1)
-	// signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	fmt.Println("TEST")
-	listen, err := net.Listen("tcp", ":8081")
+	// create TCP listener
+	ln, err := net.Listen("tcp", ":"+cfg.Protocols.HTTP.Port)
 	if err != nil {
 		logger.Error(err, "")
 		os.Exit(1)
 	}
-	fmt.Printf("Listen %s", listen.Addr())
-	service2 := deliveryGrpc.NewService(appRep, producer)
-	grpcServer2 := grpc.NewServer()
-	v1pb.RegisterJannaAPIServer(grpcServer2, service2)
-	mux := http.NewServeMux()
-	gwmux := runtime.NewServeMux()
-	mux.Handle("/", gwmux)
-	dopts := []grpc.DialOption{grpc.WithInsecure()}
-	err = v1pb.RegisterJannaAPIHandlerFromEndpoint(ctx, gwmux, listen.Addr().String(), dopts)
-	srv := &http.Server{
-		Handler: grpcHandlerFunc(grpcServer, mux),
+
+	// setup repositories
+	appRep := appinfo.NewAppRepository()
+
+	// register service and middlewares
+	service := deliveryGrpc.NewService(appRep, producer)
+	service = middleware.NewLoggingMiddleware(service, logger)
+	deliveryGrpc.RegisterServer(grpcServer, service, logger)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	srv, err := createHTTPServer(ctx, ln, grpcServer)
+	if err != nil {
+		logger.Error(err, "could not create http server")
+		os.Exit(1)
 	}
+
+	l := logger.WithFields("addr", ln.Addr().String())
+	l.Info("start listening address")
+
 	fin := make(chan struct{})
 	go func() {
 		<-ctx.Done()
-		fmt.Printf("shutting down shared server...")
-		srv.Shutdown(ctx)
+		logger.Info("shutting down shared server...")
+		_ = srv.Shutdown(ctx)
 		close(fin)
 	}()
+
 	go func() {
-		err = srv.Serve(listen)
+		err = srv.Serve(ln)
 		if err != nil {
-			fmt.Errorf("ListenAndServe: %v", err)
+			logger.Error(err, "ListenAndServe")
 			os.Exit(1)
 		}
 	}()
+
 	<-fin
-
-	// <-quit
-
-	// graceful shutdown
-	logger.Info("shutting down HTTP Gateway proxy...")
-	httpServer.Shutdown(ctx)
-	logger.Info("shutting down gRPC server...")
-	grpcServer.GracefulStop()
-
 }
 
 func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
 	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		contentType := r.Header.Get("Content-Type")
-		fmt.Printf("grpcHandlerFunc: r.ProtoMajor=%v, method=%v, contentType=%v\n",
-			r.ProtoMajor, r.Method, contentType)
 
 		if r.ProtoMajor == 2 && strings.Contains(contentType, "application/grpc") {
 			grpcServer.ServeHTTP(w, r)
@@ -155,27 +119,26 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 	}), &http2.Server{})
 }
 
-func setupHTTPServer(ctx context.Context, cfg *config.Config, l log.Logger) *http.Server {
+func createHTTPServer(ctx context.Context, ln net.Listener, grpcServer *grpc.Server) (*http.Server, error) {
 	gwMux := runtime.NewServeMux(
 		runtime.WithMetadata(populateXRequestID),
 	)
+
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
-	grpcPort := cfg.Protocols.GRPC.Port
-	if err := v1pb.RegisterJannaAPIHandlerFromEndpoint(ctx, gwMux, ":"+grpcPort, opts); err != nil {
-		l.Error(err, "failed to start HTTP gateway")
+	if err := v1pb.RegisterJannaAPIHandlerFromEndpoint(ctx, gwMux, ln.Addr().String(), opts); err != nil {
+		return nil, fmt.Errorf("failed to start HTTP gateway: %w", err)
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.Handle("/", contextWrap(gwMux))
 
-	server := http.Server{
-		Addr:    ":" + cfg.Protocols.HTTP.Port,
-		Handler: mux,
+	server := &http.Server{
+		Handler: grpcHandlerFunc(grpcServer, mux),
 	}
 
-	return &server
+	return server, nil
 }
 
 func contextWrap(h http.Handler) http.Handler {

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -20,6 +21,7 @@ func NewLoggingMiddleware(next apiV1.JannaAPIServer, logger log.Logger) apiV1.Ja
 		next:   next,
 	}
 
+	fmt.Println("NewLoggingMiddlewareNewLoggingMiddlewareNewLoggingMiddleware")
 	return &service
 }
 
@@ -179,7 +181,9 @@ func (m *ErrorHandlingMiddleware) VMPower(ctx context.Context, in *apiV1.VMPower
 func withRequestID(ctx context.Context, logger log.Logger) log.Logger {
 	reqID := ""
 	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		reqID = md["request_id"][0]
+		if len(md["request_id"]) > 0 {
+			reqID = md["request_id"][0]
+		}
 	}
 
 	l := logger.WithFields(
