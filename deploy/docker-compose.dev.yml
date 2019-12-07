@@ -42,11 +42,11 @@ services:
       context: ../
       dockerfile: build/Dockerfile.worker
     env_file: ../.env
-    restart: unless-stopped
+    restart: "no"
     # ports:
     #   - '2345:2345'
-    logging:
-      driver: none
+    # logging:
+    #   driver: none
     depends_on:
       - 'redis'
     cap_add:
