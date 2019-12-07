@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/vterdunov/janna/internal/producer/broker"
+
 	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -25,7 +27,6 @@ import (
 	deliveryGrpc "github.com/vterdunov/janna/internal/delivery/grpc"
 	"github.com/vterdunov/janna/internal/delivery/grpc/middleware"
 	"github.com/vterdunov/janna/internal/log"
-	"github.com/vterdunov/janna/internal/producer"
 )
 
 func main() {
@@ -55,16 +56,9 @@ func main() {
 	grpc_prometheus.Register(grpcServer)
 
 	// create publisher
-	producer, err := producer.NewProducer("redis://redis:6379")
+	producer, err := broker.NewRedisProducer("redis://redis:6379")
 	if err != nil {
 		logger.Error(err, "could not create Worker")
-		os.Exit(1)
-	}
-
-	// create TCP listener
-	ln, err := net.Listen("tcp", ":"+cfg.Protocols.HTTP.Port)
-	if err != nil {
-		logger.Error(err, "")
 		os.Exit(1)
 	}
 
@@ -78,6 +72,13 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// create TCP listener
+	ln, err := net.Listen("tcp", ":"+cfg.Protocols.HTTP.Port)
+	if err != nil {
+		logger.Error(err, "")
+		os.Exit(1)
+	}
 
 	srv, err := createHTTPServer(ctx, ln, grpcServer)
 	if err != nil {
@@ -107,7 +108,7 @@ func main() {
 	<-fin
 }
 
-func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
+func grpcHandlerFunc(grpcServer http.Handler, otherHandler http.Handler) http.Handler {
 	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 

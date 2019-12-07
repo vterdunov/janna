@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -21,7 +20,6 @@ func NewLoggingMiddleware(next apiV1.JannaAPIServer, logger log.Logger) apiV1.Ja
 		next:   next,
 	}
 
-	fmt.Println("NewLoggingMiddlewareNewLoggingMiddlewareNewLoggingMiddleware")
 	return &service
 }
 
@@ -49,7 +47,7 @@ func (m *ErrorHandlingMiddleware) AppInfo(ctx context.Context, in *apiV1.AppInfo
 		if err != nil {
 			logger.Error(err, "call failed")
 		} else {
-			logger.Info("call finished")
+			logger.Info("call successful")
 		}
 
 	}(begin)
@@ -76,7 +74,8 @@ func (m *ErrorHandlingMiddleware) VMInfo(ctx context.Context, in *apiV1.VMInfoRe
 		if err != nil {
 			logger.Error(err, "call failed")
 		} else {
-			logger.Info("call finished")
+			l := logger.WithFields("task_id", res.TaskId)
+			l.Info("call successful")
 		}
 
 	}(begin)
@@ -111,7 +110,8 @@ func (m *ErrorHandlingMiddleware) VMDeploy(ctx context.Context, in *apiV1.VMDepl
 		if err != nil {
 			logger.Error(err, "call failed")
 		} else {
-			logger.Info("call finished")
+			l := logger.WithFields("task_id", res.TaskId)
+			l.Info("call successful")
 		}
 
 	}(begin)
@@ -141,7 +141,8 @@ func (m *ErrorHandlingMiddleware) VMList(ctx context.Context, in *apiV1.VMListRe
 		if err != nil {
 			logger.Error(err, "call failed")
 		} else {
-			logger.Info("call finished")
+			l := logger.WithFields("task_id", res.TaskId)
+			l.Info("call successful")
 		}
 
 	}(begin)
@@ -170,7 +171,7 @@ func (m *ErrorHandlingMiddleware) VMPower(ctx context.Context, in *apiV1.VMPower
 		if err != nil {
 			logger.Error(err, "call failed")
 		} else {
-			logger.Info("call finished")
+			logger.Info("call successful")
 		}
 
 	}(begin)

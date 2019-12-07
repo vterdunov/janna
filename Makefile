@@ -60,13 +60,17 @@ tools:
 generate:
 	go generate ./...
 
-.PHONY: run-compose
-run-compose: compile
+.PHONY: compose-run
+compose-run: compile ## Start whole stack of Janna services for development
 	docker-compose -f deploy/docker-compose.dev.yml up --build --scale worker=3
 
-.PHONY: run-compose-debug
-run-compose-debug: compile compile-worker-debug
+.PHONY: compose-run-debug
+compose-run-debug: compile compile-worker-debug
 	docker-compose -f deploy/docker-compose.dev.yml up --build
+
+.PHONY: compose-clean
+compose-clean: ## Clean containers and its data
+	docker-compose -f deploy/docker-compose.dev.yml down --volumes
 
 .PHONY: help
 help: ## Display this help message
