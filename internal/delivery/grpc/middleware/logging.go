@@ -11,7 +11,6 @@ import (
 
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/log"
-	"github.com/vterdunov/janna/internal/producer"
 )
 
 func NewLoggingMiddleware(next apiV1.JannaAPIServer, logger log.Logger) apiV1.JannaAPIServer {
@@ -216,8 +215,8 @@ func translateError(err error) error {
 	}
 
 	switch errors.Cause(err) {
-	case producer.ErrVMAlreadyExist:
-		err = status.Errorf(codes.AlreadyExists, err.Error())
+	// case producer.ErrVMAlreadyExist:
+	// 	err = status.Errorf(codes.AlreadyExists, err.Error())
 	default:
 		err = status.Errorf(codes.Internal, err.Error())
 	}

@@ -1,16 +1,13 @@
 package main
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/gob"
 	"log"
 	"os"
 
-	"github.com/pkg/errors"
-
 	"github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/config"
+
+	w "github.com/vterdunov/janna/internal/worker"
 )
 
 func main() {
@@ -27,8 +24,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	if registerErr := server.RegisterTask("vm_deploy", VMDeploy); registerErr != nil {
-		log.Printf("Could not register task: %s", registerErr.Error())
+	vmDeployFunc := w.VMDeploy{}
+
+	if regErr := server.RegisterTask("vm_deploy", vmDeployFunc.Execute); regErr != nil {
+		log.Printf("Could not register task: %s", regErr.Error())
+		os.Exit(1)
+	}
+
+	vmListFunc := w.VMList{}
+
+	if regErr := server.RegisterTask("vm_list", vmListFunc.Execute); regErr != nil {
+		log.Printf("Could not register task: %s", regErr.Error())
+		os.Exit(1)
+	}
+
+	vmInfoFunc := w.VMDeploy{}
+
+	if regErr := server.RegisterTask("vm_info", vmInfoFunc.Execute); regErr != nil {
+		log.Printf("Could not register task: %s", regErr.Error())
 		os.Exit(1)
 	}
 
@@ -81,20 +94,20 @@ const (
 	ComputerResourceResourcePool
 )
 
-func VMDeploy(params string) error {
-	sDec, err := base64.StdEncoding.DecodeString(params)
-	if err != nil {
-		return errors.Wrap(err, "could not decode parameters from base64")
-	}
+// func VMDeploy(params string) error {
+// 	sDec, err := base64.StdEncoding.DecodeString(params)
+// 	if err != nil {
+// 		return errors.Wrap(err, "could not decode parameters from base64")
+// 	}
 
-	r := bytes.NewReader(sDec)
-	dec := gob.NewDecoder(r)
+// 	r := bytes.NewReader(sDec)
+// 	dec := gob.NewDecoder(r)
 
-	var deployParams VMDeployRequest
-	err = dec.Decode(&deployParams)
-	if err != nil {
-		return errors.Wrap(err, "could not decode parameters from bytes")
-	}
+// 	var deployParams VMDeployRequest
+// 	err = dec.Decode(&deployParams)
+// 	if err != nil {
+// 		return errors.Wrap(err, "could not decode parameters from bytes")
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
