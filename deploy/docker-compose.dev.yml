@@ -11,15 +11,15 @@ services:
     logging:
       driver: none
 
-  # redis-ui:
-  #   image: marian/rebrow
-  #   container_name: redis-ui
-  #   restart: unless-stopped
-  #   env_file: ../.env
-  #   ports:
-  #     - "8090:5001"
-  #   logging:
-  #     driver: none
+  redis-ui:
+    image: marian/rebrow
+    container_name: redis-ui
+    restart: unless-stopped
+    env_file: ../.env
+    ports:
+      - "8090:5001"
+    logging:
+      driver: none
 
 
   api:
