@@ -54,6 +54,33 @@ func (m *ErrorHandlingMiddleware) AppInfo(ctx context.Context, in *apiV1.AppInfo
 	return res, translateError(err)
 }
 
+func (m *ErrorHandlingMiddleware) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*apiV1.TaskStatusResponse, error) {
+	begin := time.Now()
+	logger := withRequestID(ctx, m.logger)
+	logger = logger.WithFields(
+		"method", "TaskStatus",
+	)
+
+	logger.Info("calling endpoint")
+
+	res, err := m.next.TaskStatus(ctx, in)
+
+	defer func(begin time.Time) {
+		logger = logger.WithFields(
+			"took", time.Since(begin).String(),
+		)
+
+		if err != nil {
+			logger.Error(err, "call failed")
+		} else {
+			logger.Info("call successful")
+		}
+
+	}(begin)
+
+	return res, translateError(err)
+}
+
 func (m *ErrorHandlingMiddleware) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
 	begin := time.Now()
 	logger := withRequestID(ctx, m.logger)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/gob"
+	"fmt"
 
 	"github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/config"
@@ -38,8 +39,26 @@ func NewRedisProducer(redisURL string) (RedisPublisher, error) {
 	return redisPublisher, nil
 }
 
+func (p RedisPublisher) TaskInfo(ctx context.Context, params producer.TaskInfoRequest) (string, error) {
+	asyncResult, err := p.server.GetBackend().GetState(params.TaskID)
+	if err != nil {
+		return "", fmt.Errorf("could not get info for task id: %s", params.TaskID)
+	}
+
+	buf := bytes.Buffer{}
+	enc := gob.NewEncoder(&buf)
+
+	if err := enc.Encode(asyncResult.Results); err != nil {
+		return "", err
+	}
+
+	result := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	return result, nil
+}
+
 func (p RedisPublisher) VMDeployTask(ctx context.Context, params producer.VMDeployRequest) (producer.VMDeployResponse, error) {
-	var buf bytes.Buffer
+	buf := bytes.Buffer{}
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(params)
 	if err != nil {
@@ -70,7 +89,7 @@ func (p RedisPublisher) VMDeployTask(ctx context.Context, params producer.VMDepl
 }
 
 func (p RedisPublisher) VMInfoTask(ctx context.Context, params producer.VMInfoRequest) (producer.VMInfoResponse, error) {
-	var buf bytes.Buffer
+	buf := bytes.Buffer{}
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(params)
 	if err != nil {
@@ -101,7 +120,7 @@ func (p RedisPublisher) VMInfoTask(ctx context.Context, params producer.VMInfoRe
 }
 
 func (p RedisPublisher) VMListTask(ctx context.Context, params producer.VMListRequest) (producer.VMListResponse, error) {
-	var buf bytes.Buffer
+	buf := bytes.Buffer{}
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(params)
 	if err != nil {

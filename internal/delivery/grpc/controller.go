@@ -2,8 +2,11 @@ package grpc
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
 
+	stpb "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -29,6 +32,39 @@ func NewService(i appinfo.Repository, p producer.Producer) apiV1.JannaAPIServer 
 func RegisterServer(gserver *grpc.Server, service apiV1.JannaAPIServer, logger log.Logger) {
 	apiV1.RegisterJannaAPIServer(gserver, service)
 	reflection.Register(gserver)
+}
+
+func (s Service) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*apiV1.TaskStatusResponse, error) {
+	params := producer.TaskInfoRequest{
+		TaskID: in.TaskId,
+	}
+
+	command := producer.NewTaskInfo(params, s.producer)
+	result, err := command.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	dResult, err := base64.StdEncoding.DecodeString(result)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode result: %w", err)
+	}
+
+	item := stpb.Struct{
+		Fields: map[string]*stpb.Value{
+			"testkey": &stpb.Value{
+				Kind: &stpb.Value_StringValue{StringValue: "test string"},
+			},
+		},
+	}
+
+	resp := apiV1.TaskStatusResponse{
+		Status:  "test status",
+		Message: "test message",
+		Result:  &item,
+	}
+
+	return &resp, nil
 }
 
 func (s Service) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {

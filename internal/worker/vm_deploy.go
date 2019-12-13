@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"fmt"
+
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -29,10 +30,10 @@ const (
 
 type VMDeploy struct{}
 
-func (d *VMDeploy) Execute(params string) error {
+func (d *VMDeploy) Execute(params string) (string, error) {
 	sDec, err := base64.StdEncoding.DecodeString(params)
 	if err != nil {
-		return fmt.Errorf("could not decode parameters from base64: %w", err)
+		return "", fmt.Errorf("could not decode parameters from base64: %w", err)
 	}
 
 	r := bytes.NewReader(sDec)
@@ -41,11 +42,22 @@ func (d *VMDeploy) Execute(params string) error {
 	var deployParams VMDeployRequest
 	err = dec.Decode(&deployParams)
 	if err != nil {
-		return fmt.Errorf("could not decode parameters from bytes: %w", err)
+		return "", fmt.Errorf("could not decode parameters from bytes: %w", err)
 	}
 
 	spew.Dump(deployParams)
-	return nil
+
+	dummyResp := "dummy dummy dummy dummy dummy dummy dummy dummy"
+
+	buf := bytes.Buffer{}
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(dummyResp); err != nil {
+		return "", err
+	}
+
+	resp := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	return resp, nil
 }
 
 type VMDeployRequest struct {
@@ -67,4 +79,9 @@ type ComputerResources struct {
 type Datastores struct {
 	Type  DatastoreType
 	Names []string
+}
+
+type VMDeployResponse struct {
+	Name string
+	IP   string
 }
