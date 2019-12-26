@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	stpb "github.com/golang/protobuf/ptypes/struct"
+	anypb "github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -50,12 +50,16 @@ func (s Service) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*
 		return nil, fmt.Errorf("could not decode result: %w", err)
 	}
 
-	item := stpb.Struct{
-		Fields: map[string]*stpb.Value{
-			"testkey": &stpb.Value{
-				Kind: &stpb.Value_StringValue{StringValue: "test string"},
-			},
-		},
+	// item := stpb.Struct{
+	// 	Fields: map[string]*stpb.Value{
+	// 		"testkey": &stpb.Value{
+	// 			Kind: &stpb.Value_StringValue{StringValue: "test string"},
+	// 		},
+	// 	},
+	// }
+
+	item := anypb.Any{
+		Value: dResult,
 	}
 
 	resp := apiV1.TaskStatusResponse{

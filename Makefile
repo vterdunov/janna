@@ -22,13 +22,13 @@ all: lint docker
 docker: ## Build Docker container
 	docker build --tag=$(IMAGE_NAME):$(COMMIT) --tag=$(IMAGE_NAME):latest --build-arg=GITHUB_TOKEN=${GITHUB_TOKEN} --file build/Dockerfile .
 
-.PHONY: compile
-compile: ## Build server binary
+.PHONY: build
+build: clean ## Build server binary
 	$(GO_VARS) go build -v $(GO_LDFLAGS) -o $(PROG_NAME) ./cmd/api/main.go
 	$(GO_VARS) go build -v $(GO_LDFLAGS) -o worker ./cmd/worker/main.go
 
-.PHONY: compile-worker-debug
-compile-worker-debug: ## Build worker without compiler optomizations
+.PHONY: build-worker-debug
+build-worker-debug: clean ## Build worker without compiler optomizations
 	$(GO_VARS) go build -v -gcflags "all=-N -l" -o worker ./cmd/worker/main.go
 
 .PHONY: test
@@ -44,7 +44,7 @@ push: ## Push docker container to registry
 run: ## Extract env variables from .env and run server with race detector
 	@env `cat .env | grep -v ^# | xargs` go run -race ./cmd/server/main.go
 
-compile-and-run: compile ## Extract env variables from .env. Compile and run server
+build-and-run: clean build ## Extract env variables from .env. Compile and run server
 	@env `cat .env | grep -v ^# | xargs` ./$(PROG_NAME)
 
 .PHONY: lint
@@ -61,16 +61,21 @@ generate:
 	go generate ./...
 
 .PHONY: compose-run
-compose-run: compile ## Start whole stack of Janna services for development
+compose-run: build ## Start whole stack of Janna services for development
 	docker-compose -f deploy/docker-compose.dev.yml up --build --scale worker=3
 
 .PHONY: compose-run-debug
-compose-run-debug: compile compile-worker-debug
+compose-run-debug: build build-worker-debug
 	docker-compose -f deploy/docker-compose.dev.yml up --build
 
 .PHONY: compose-clean
 compose-clean: ## Clean containers and its data
 	docker-compose -f deploy/docker-compose.dev.yml down --volumes
+
+.PHONY: clean
+clean:
+	@rm -f worker
+	@rm -f janna
 
 .PHONY: help
 help: ## Display this help message
