@@ -3,10 +3,7 @@ package grpc
 import (
 	"context"
 	"errors"
-	"strings"
 
-	"github.com/gogo/protobuf/jsonpb"
-	anypb "github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -35,42 +32,22 @@ func RegisterServer(gserver *grpc.Server, service apiV1.JannaAPIServer, logger l
 }
 
 func (s Service) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*apiV1.TaskStatusResponse, error) {
-	params := producer.TaskInfoRequest{
-		TaskID: in.TaskId,
-	}
-
-	command := producer.NewTaskInfo(params, s.producer)
-	result, err := command.Execute(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	_ = result
-
-	// item := stpb.Struct{
-	// 	Fields: map[string]*stpb.Value{
-	// 		"testkey": &stpb.Value{
-	// 			Kind: &stpb.Value_StringValue{StringValue: "test string"},
-	// 		},
-	// 	},
+	// params := producer.TaskInfoRequest{
+	// 	TaskID: in.TaskId,
 	// }
 
-	item := anypb.Any{
-		Value: dResult,
-	}
+	// command := producer.NewTaskInfo(params, s.producer)
+	// result, err := command.Execute(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// _ = result
 
 	resp := apiV1.TaskStatusResponse{
 		Status:  "test status",
 		Message: "test message",
-		// Result:  &item,
-	}
-
-	r := strings.NewReader("Hello, Reader!")
-
-	jsm := jsonpb.Unmarshaler{}
-
-	if err := jsm.Unmarshal(r, &resp); err != nil {
-		return nil, err
+		Result:  &apiV1.TaskStatusResponse_Test1{"this is test 1"},
 	}
 
 	return &resp, nil
