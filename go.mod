@@ -6,6 +6,7 @@ require (
 	git.apache.org/thrift.git v0.0.0-20181218151757-9b75e4fe745a // indirect
 	github.com/RichardKnop/machinery v1.7.1
 	github.com/davecgh/go-spew v1.1.1
+	github.com/gogo/protobuf v1.1.1
 	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0

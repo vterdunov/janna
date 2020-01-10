@@ -2,10 +2,10 @@ package grpc
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
-	"fmt"
+	"strings"
 
+	"github.com/gogo/protobuf/jsonpb"
 	anypb "github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -45,10 +45,7 @@ func (s Service) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*
 		return nil, err
 	}
 
-	dResult, err := base64.StdEncoding.DecodeString(result)
-	if err != nil {
-		return nil, fmt.Errorf("could not decode result: %w", err)
-	}
+	_ = result
 
 	// item := stpb.Struct{
 	// 	Fields: map[string]*stpb.Value{
@@ -65,7 +62,15 @@ func (s Service) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*
 	resp := apiV1.TaskStatusResponse{
 		Status:  "test status",
 		Message: "test message",
-		Result:  &item,
+		// Result:  &item,
+	}
+
+	r := strings.NewReader("Hello, Reader!")
+
+	jsm := jsonpb.Unmarshaler{}
+
+	if err := jsm.Unmarshal(r, &resp); err != nil {
+		return nil, err
 	}
 
 	return &resp, nil

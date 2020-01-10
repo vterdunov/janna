@@ -15,10 +15,16 @@ func NewTaskInfo(params TaskInfoRequest, producer Producer) TaskInfo {
 	}
 }
 
-func (d *TaskInfo) Execute(ctx context.Context) (string, error) {
+func (d *TaskInfo) Execute(ctx context.Context) (TaskInfoResponse, error) {
 	return d.TaskInfo(ctx, d.params)
 }
 
 type TaskInfoRequest struct {
 	TaskID string
+}
+
+type TaskInfoResponse struct {
+	State string
+	Data  string
+	Err   error
 }

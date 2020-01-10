@@ -10,6 +10,7 @@ import (
 	"github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/config"
 	"github.com/RichardKnop/machinery/v1/tasks"
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/vterdunov/janna/internal/producer"
 )
@@ -39,20 +40,33 @@ func NewRedisProducer(redisURL string) (RedisPublisher, error) {
 	return redisPublisher, nil
 }
 
-func (p RedisPublisher) TaskInfo(ctx context.Context, params producer.TaskInfoRequest) (string, error) {
+func (p RedisPublisher) TaskInfo(ctx context.Context, params producer.TaskInfoRequest) (producer.TaskInfoResponse, error) {
 	asyncResult, err := p.server.GetBackend().GetState(params.TaskID)
 	if err != nil {
-		return "", fmt.Errorf("could not get info for task id: %s", params.TaskID)
+		return producer.TaskInfoResponse{}, fmt.Errorf("could not get info for task id: %s", params.TaskID)
 	}
 
 	buf := bytes.Buffer{}
 	enc := gob.NewEncoder(&buf)
 
 	if err := enc.Encode(asyncResult.Results); err != nil {
-		return "", err
+		return producer.TaskInfoResponse{}, err
 	}
 
-	result := base64.StdEncoding.EncodeToString(buf.Bytes())
+	fmt.Println("Iterate throug results:")
+	var data string
+	for _, r := range asyncResult.Results {
+		spew.Dump(r)
+	}
+
+	fmt.Println("Result Error:")
+	spew.Dump(asyncResult.Error)
+
+	result := producer.TaskInfoResponse{
+		State: asyncResult.State,
+		Data:  data,
+	}
+	// result.Data = base64.StdEncoding.EncodeToString(buf.Bytes())
 
 	return result, nil
 }
