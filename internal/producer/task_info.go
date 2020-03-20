@@ -24,7 +24,8 @@ type TaskInfoRequest struct {
 }
 
 type TaskInfoResponse struct {
-	State string
-	Data  string
-	Err   error
+	State    string
+	TaskName string
+	Data     string
+	Err      error
 }

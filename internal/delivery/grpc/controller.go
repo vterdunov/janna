@@ -2,7 +2,9 @@ package grpc
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -32,22 +34,30 @@ func RegisterServer(gserver *grpc.Server, service apiV1.JannaAPIServer, logger l
 }
 
 func (s Service) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*apiV1.TaskStatusResponse, error) {
-	// params := producer.TaskInfoRequest{
-	// 	TaskID: in.TaskId,
-	// }
+	params := producer.TaskInfoRequest{
+		TaskID: in.TaskId,
+	}
 
-	// command := producer.NewTaskInfo(params, s.producer)
-	// result, err := command.Execute(ctx)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	command := producer.NewTaskInfo(params, s.producer)
+	result, err := command.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("-----")
+	fmt.Println(result.State)
+	fmt.Println(result.TaskName)
+	fmt.Println(result.Data)
+	fmt.Println("-----")
 
-	// _ = result
+	sDec, err := base64.StdEncoding.DecodeString(result.Data)
+	if err != nil {
+		return nil, fmt.Errorf("Error decoding string: %s ", err.Error())
+	}
 
 	resp := apiV1.TaskStatusResponse{
-		Status:  "test status",
-		Message: "test message",
-		Result:  &apiV1.TaskStatusResponse_Test1{"this is test 1"},
+		Status:  result.State,
+		Message: result.TaskName,
+		Result:  &apiV1.TaskStatusResponse_Test1{Test1: string(sDec)},
 	}
 
 	return &resp, nil

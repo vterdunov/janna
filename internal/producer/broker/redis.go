@@ -10,7 +10,6 @@ import (
 	"github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/config"
 	"github.com/RichardKnop/machinery/v1/tasks"
-	"github.com/davecgh/go-spew/spew"
 
 	"github.com/vterdunov/janna/internal/producer"
 )
@@ -53,20 +52,17 @@ func (p RedisPublisher) TaskInfo(ctx context.Context, params producer.TaskInfoRe
 		return producer.TaskInfoResponse{}, err
 	}
 
-	fmt.Println("Iterate throug results:")
 	var data string
 	for _, r := range asyncResult.Results {
-		spew.Dump(r)
+		data = r.Value.(string)
 	}
-
-	fmt.Println("Result Error:")
-	spew.Dump(asyncResult.Error)
 
 	result := producer.TaskInfoResponse{
-		State: asyncResult.State,
-		Data:  data,
+		State:    asyncResult.State,
+		TaskName: asyncResult.TaskName,
+		Data:     data,
+		Err:      fmt.Errorf("%s", asyncResult.Error),
 	}
-	// result.Data = base64.StdEncoding.EncodeToString(buf.Bytes())
 
 	return result, nil
 }
