@@ -100,7 +100,7 @@ func (m *ErrorHandlingMiddleware) VMInfo(ctx context.Context, in *apiV1.VMInfoRe
 		if err != nil {
 			logger.Error(err, "call failed")
 		} else {
-			l := logger.WithFields("task_id", res.TaskId)
+			l := logger.WithFields("task_id", res.GetTaskId())
 			l.Info("call successful")
 		}
 

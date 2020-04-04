@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -43,22 +44,32 @@ func (s Service) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("-----")
-	fmt.Println(result.State)
-	fmt.Println(result.TaskName)
-	fmt.Println(result.Data)
-	fmt.Println("-----")
+
+	resp := apiV1.TaskStatusResponse{}
+
+	if result.Err != nil {
+		resp.State = "error"
+		resp.Result = &apiV1.TaskStatusResponse_Error{Error: result.Err.Error()}
+		return &resp, nil
+	}
+
+	switch result.TaskType {
+	case producer.VMDeployTask:
+		fmt.Println("VM deploy task")
+	case producer.VMInfoTask:
+		fmt.Println("VM info task")
+	default:
+		fmt.Println("error. unknown task type")
+	}
 
 	sDec, err := base64.StdEncoding.DecodeString(result.Data)
 	if err != nil {
 		return nil, fmt.Errorf("Error decoding string: %s ", err.Error())
 	}
+	_ = sDec
 
-	resp := apiV1.TaskStatusResponse{
-		Status:  result.State,
-		Message: result.TaskName,
-		Result:  &apiV1.TaskStatusResponse_Test1{Test1: string(sDec)},
-	}
+	resp.State = strings.ToLower(result.State)
+	resp.Result = &apiV1.TaskStatusResponse_IpAddresses{IpAddresses: &apiV1.IPAddresses{IpAddresses: []string{"1.1.1.1", "2.2.2.2"}}}
 
 	return &resp, nil
 }

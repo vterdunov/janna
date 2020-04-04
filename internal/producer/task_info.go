@@ -2,6 +2,14 @@ package producer
 
 import "context"
 
+type TaskType int
+
+const (
+	Invalid TaskType = iota
+	VMDeployTask
+	VMInfoTask
+)
+
 type TaskInfo struct {
 	params TaskInfoRequest
 
@@ -24,8 +32,8 @@ type TaskInfoRequest struct {
 }
 
 type TaskInfoResponse struct {
-	State    string
-	TaskName string
-	Data     string
-	Err      error
+	State string
+	TaskType
+	Data string
+	Err  error
 }

@@ -164,8 +164,10 @@ github.com/stvp/tempredis v0.0.0-20181119212430-b82af8480203/go.mod h1:oqN97ltKN
 github.com/tidwall/pretty v0.0.0-20180105212114-65a9db5fad51 h1:BP2bjP495BBPaBcS5rmqviTfrOkN5rO5ceKAMRZCRFc=
 github.com/tidwall/pretty v0.0.0-20180105212114-65a9db5fad51/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/urfave/cli v1.22.1/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
-github.com/vterdunov/janna-proto v0.0.0-20200110185927-659cd318d943 h1:fzjJbjoQEybM7Zw2cOH9nihoBAPAd+pptzbWJ1khZj8=
-github.com/vterdunov/janna-proto v0.0.0-20200110185927-659cd318d943/go.mod h1:EFzYMS7yKxm7IVodfX329zLzyEk6qg3hZf/Ru94IIE8=
+github.com/vterdunov/janna-proto v0.0.0-20200402144706-0c77c44693b3 h1:WwiAo1/EFlUqxqoSNCrYyFuQENxVIpatEGcCJHX1ayg=
+github.com/vterdunov/janna-proto v0.0.0-20200402144706-0c77c44693b3/go.mod h1:EFzYMS7yKxm7IVodfX329zLzyEk6qg3hZf/Ru94IIE8=
+github.com/vterdunov/janna-proto v0.0.0-20200404171736-d8037f0ffd1e h1:RTbA+FaQYELKaA9O3kBW/iarUhcwSd4A0fn084uO1fs=
+github.com/vterdunov/janna-proto v0.0.0-20200404171736-d8037f0ffd1e/go.mod h1:EFzYMS7yKxm7IVodfX329zLzyEk6qg3hZf/Ru94IIE8=
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c h1:u40Z8hqBAAQyv+vATcGgV0YCnDjqSL7/q/JyPhhJSPk=
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c/go.mod h1:lB8K/P019DLNhemzwFU4jHLhdvlE6uDZjXFejJXr49I=
 github.com/xdg/stringprep v1.0.0 h1:d9X0esnoa3dFsV0FG35rAT0RIhYFlPq7MiP+DW89La0=

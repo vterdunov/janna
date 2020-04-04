@@ -57,9 +57,20 @@ func (p RedisPublisher) TaskInfo(ctx context.Context, params producer.TaskInfoRe
 		data = r.Value.(string)
 	}
 
+	var taskType producer.TaskType
+
+	switch asyncResult.TaskName {
+	case "vm_deploy":
+		taskType = producer.VMDeployTask
+	case "vm_info":
+		taskType = producer.VMInfoTask
+	default:
+		taskType = producer.Invalid
+	}
+
 	result := producer.TaskInfoResponse{
 		State:    asyncResult.State,
-		TaskName: asyncResult.TaskName,
+		TaskType: taskType,
 		Data:     data,
 		Err:      fmt.Errorf("%s", asyncResult.Error),
 	}
