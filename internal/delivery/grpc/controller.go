@@ -2,7 +2,10 @@ package grpc
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -10,25 +13,69 @@ import (
 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/appinfo"
 	"github.com/vterdunov/janna/internal/log"
-	"github.com/vterdunov/janna/internal/virtualmachine"
+	"github.com/vterdunov/janna/internal/producer"
 )
 
 // Service implements apiV1.JannaAPIServer
 type Service struct {
 	appInfoRepository appinfo.Repository
-	vmRepository      virtualmachine.VMRepository
+	producer          producer.Producer
 }
 
-func NewService(appInfoRepository appinfo.Repository, vmRepository virtualmachine.VMRepository) apiV1.JannaAPIServer {
+func NewService(i appinfo.Repository, p producer.Producer) apiV1.JannaAPIServer {
 	return Service{
-		appInfoRepository: appInfoRepository,
-		vmRepository:      vmRepository,
+		appInfoRepository: i,
+		producer:          p,
 	}
 }
 
 func RegisterServer(gserver *grpc.Server, service apiV1.JannaAPIServer, logger log.Logger) {
 	apiV1.RegisterJannaAPIServer(gserver, service)
 	reflection.Register(gserver)
+}
+
+func (s Service) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*apiV1.TaskStatusResponse, error) {
+	params := producer.TaskInfoRequest{
+		TaskID: in.TaskId,
+	}
+
+	command := producer.NewTaskInfo(params, s.producer)
+	result, err := command.Execute(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := apiV1.TaskStatusResponse{}
+
+	if result.Err != nil {
+		resp.State = "error"
+		resp.Result = &apiV1.TaskStatusResponse_Error{Error: result.Err.Error()}
+		return &resp, nil
+	}
+
+	switch result.TaskType {
+	case producer.VMDeployTask:
+		fmt.Println("VM deploy task")
+	case producer.VMInfoTask:
+		fmt.Println("VM info task")
+	default:
+		fmt.Println("error. unknown task type")
+	}
+
+	sDec, err := base64.StdEncoding.DecodeString(result.Data)
+	if err != nil {
+		return nil, fmt.Errorf("Error decoding string: %s ", err.Error())
+	}
+	_ = sDec
+
+	resp.State = strings.ToLower(result.State)
+	resp.Result = &apiV1.TaskStatusResponse_IpAddresses{IpAddresses: &apiV1.IPAddresses{IpAddresses: []string{"1.1.1.1", "2.2.2.2"}}}
+
+	return &resp, nil
+}
+
+func (s Service) OpenApi(ctx context.Context, in *apiV1.OpenApiRequest) (*apiV1.OpenApiResponse, error) {
+	return nil, nil
 }
 
 func (s Service) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
@@ -43,26 +90,18 @@ func (s Service) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.
 }
 
 func (s Service) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
-	params := virtualmachine.VMInfoRequest{
+	params := producer.VMInfoRequest{
 		UUID: in.VmUuid,
 	}
 
-	command := virtualmachine.NewVMInfo(s.vmRepository, params)
-	info, err := command.Execute()
+	command := producer.NewVMInfo(params, s.producer)
+	info, err := command.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := apiV1.VMInfoResponse{
-		Name:             info.Name,
-		Uuid:             info.UUID,
-		GuestId:          info.GuestID,
-		Annotation:       info.Annotation,
-		PowerState:       info.PowerState,
-		NumCpu:           info.NumCPU,
-		NumEthernetCards: info.NumEthernetCards,
-		NumVirtualDisks:  info.NumVirtualDisks,
-		Template:         info.Template,
+		TaskId: info.TaskID,
 	}
 
 	return &resp, nil
@@ -70,49 +109,49 @@ func (s Service) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VM
 
 func (s Service) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
 	// TODO: validate incoming data
-	var crType virtualmachine.ComputerResourcesType
+	var crType producer.ComputerResourcesType
 	var crPath string
 	if in.ComputerResources != nil {
 		crPath = in.ComputerResources.Path
 
 		switch in.ComputerResources.Type.String() {
 		case "TYPE_HOST":
-			crType = virtualmachine.ComputerResourceHost
+			crType = producer.ComputerResourceHost
 		case "TYPE_CLUSTER":
-			crType = virtualmachine.ComputerResourceCluster
+			crType = producer.ComputerResourceCluster
 		case "TYPE_RP":
-			crType = virtualmachine.ComputerResourceResourcePool
+			crType = producer.ComputerResourceResourcePool
 		default:
 			return nil, errors.New("could not recognize Computer resource type. Please read documentation")
 		}
 	}
 
-	cr := virtualmachine.ComputerResources{
+	cr := producer.ComputerResources{
 		Type: crType,
 		Path: crPath,
 	}
 
-	var dsType virtualmachine.DatastoreType
+	var dsType producer.DatastoreType
 	var dsNames []string
 	if in.Datastores != nil {
 		dsNames = in.Datastores.Names
 
 		switch in.Datastores.Type.String() {
 		case "TYPE_CLUSTER":
-			dsType = virtualmachine.DatastoreCluster
+			dsType = producer.DatastoreCluster
 		case "TYPE_DATASTORE":
-			dsType = virtualmachine.DatastoreDatastore
+			dsType = producer.DatastoreDatastore
 		default:
 			return nil, errors.New("could not recognize Datastore type. Please read documentation")
 		}
 	}
 
-	datastores := virtualmachine.Datastores{
+	datastores := producer.Datastores{
 		Type:  dsType,
 		Names: dsNames,
 	}
 
-	params := virtualmachine.VMDeployRequest{
+	params := producer.VMDeployRequest{
 		Name:              in.Name,
 		Datacenter:        in.Datacenter,
 		OvaURL:            in.OvaUrl,
@@ -122,8 +161,8 @@ func (s Service) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 		Datastores:        datastores,
 	}
 
-	command := virtualmachine.NewVMDeploy(s.vmRepository, params)
-	r, err := command.Execute()
+	command := producer.NewVMDeploy(params, s.producer)
+	r, err := command.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -136,32 +175,21 @@ func (s Service) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV
 }
 
 func (s Service) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VMListResponse, error) {
-	params := virtualmachine.VMListRequest{
+	params := producer.VMListRequest{
 		Datacenter:   in.Datacenter,
 		Folder:       in.Folder,
 		ResourcePool: in.ResourcePool,
 	}
 
-	command := virtualmachine.NewVMList(s.vmRepository, params)
-	r, err := command.Execute()
+	command := producer.NewVMList(params, s.producer)
+	r, err := command.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	vms := make([]*apiV1.VMListResponse_VMMap, 0, len(r))
-	for _, v := range r {
-		vm := apiV1.VMListResponse_VMMap{
-			Name: v.Name,
-			Uuid: v.UUID,
-		}
-
-		vms = append(vms, &vm)
-	}
-
 	resp := apiV1.VMListResponse{
-		VirtualMachines: vms,
+		TaskId: r.TaskID,
 	}
-
 	return &resp, nil
 }
 

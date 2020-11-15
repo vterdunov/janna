@@ -1,4 +1,4 @@
-package virtualmachine
+package producer
 
 import (
 	"context"
@@ -27,28 +27,18 @@ const (
 type VMDeploy struct {
 	params VMDeployRequest
 
-	VMRepository
+	Producer
 }
 
-func NewVMDeploy(r VMRepository, params VMDeployRequest) VMDeploy {
+func NewVMDeploy(params VMDeployRequest, producer Producer) VMDeploy {
 	return VMDeploy{
-		params:       params,
-		VMRepository: r,
+		params:   params,
+		Producer: producer,
 	}
 }
 
-func (d *VMDeploy) Execute() (VMDeployResponse, error) {
-	ctx := context.Background()
-	exist, err := d.IsVMExist(ctx, d.params.Name, d.params.Datacenter)
-	if err != nil {
-		return VMDeployResponse{}, err
-	}
-
-	if exist {
-		return VMDeployResponse{}, ErrVMAlreadyExist
-	}
-
-	return d.VMDeploy(ctx, d.params)
+func (d *VMDeploy) Execute(ctx context.Context) (VMDeployResponse, error) {
+	return d.VMDeployTask(ctx, d.params)
 }
 
 type VMDeployRequest struct {
@@ -74,18 +64,4 @@ type ComputerResources struct {
 type Datastores struct {
 	Type  DatastoreType
 	Names []string
-}
-
-// StatusStorager represents behavior of storage that keeps deploy jobs statuses
-type StatusStorager interface {
-	NewTask() TaskStatuser
-	FindByID(id string) TaskStatuser
-}
-
-// TaskStatuser represents behavior of every single task
-type TaskStatuser interface {
-	ID() string
-	Str(keyvals ...string) TaskStatuser
-	StrArr(key string, arr []string) TaskStatuser
-	Get() (statuses map[string]interface{})
 }

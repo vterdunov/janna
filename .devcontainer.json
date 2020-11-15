@@ -1,7 +1,7 @@
 // See https://aka.ms/vscode-remote/devcontainer.json for format details.
 {
 	"name": "Janna API",
-	"dockerFile": "build/Dockerfile.dev",
+	"dockerFile": "build/Dockerfile.devcontainer",
 	"workspaceFolder": "${env:PWD}",
 	"workspaceMount": "src=${env:PWD},dst=${env:PWD},type=bind",
 	"runArgs": [

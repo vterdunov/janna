@@ -6,8 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+	"strings"
 
 	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -15,24 +14,31 @@ import (
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/vterdunov/janna-proto/box"
+	v1pb "github.com/vterdunov/janna-proto/gen/go/v1"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	v1pb "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/appinfo"
 	"github.com/vterdunov/janna/internal/config"
 	deliveryGrpc "github.com/vterdunov/janna/internal/delivery/grpc"
 	"github.com/vterdunov/janna/internal/delivery/grpc/middleware"
 	"github.com/vterdunov/janna/internal/log"
-	vmWareRepository "github.com/vterdunov/janna/internal/virtualmachine/repository"
+	"github.com/vterdunov/janna/internal/producer/broker"
 )
 
 func main() {
+	fmt.Println("-----")
+	fmt.Println(box.Has("/janna_api.swagger.json"))
+	fmt.Println("-----")
+
 	logger := log.NewLogger()
 
 	cfg, err := config.Load()
 	if err != nil {
-		fmt.Printf("Could not read config. Err: %s\n", err)
+		logger.Error(err, "could not read config")
 		os.Exit(1)
 	}
 
@@ -49,82 +55,95 @@ func main() {
 		)),
 	)
 
+	// register metrics
 	grpc_prometheus.EnableHandlingTimeHistogram()
 	grpc_prometheus.Register(grpcServer)
 
-	// setup repositories
-	appRep := appinfo.NewAppRepository()
-	vmwareRep, err := vmWareRepository.NewVMRepository(cfg.VMWare.URL, cfg.VMWare.Insecure)
+	// create publisher
+	producer, err := broker.NewRedisProducer("redis://redis:6379")
 	if err != nil {
-		logger.Error(err, "could not create VMWare connection")
+		logger.Error(err, "could not create Worker")
 		os.Exit(1)
 	}
 
-	// register and run servers
-	service := deliveryGrpc.NewService(appRep, vmwareRep)
-	service = middleware.NewLoggingMiddleware(service, logger)
-	deliveryGrpc.RegisterServer(grpcServer, service, logger)
+	// setup repositories
+	appRep := appinfo.NewAppRepository()
 
-	var httpServer *http.Server
+	// register service and middlewares
+	service := deliveryGrpc.NewService(appRep, producer)
+	service = middleware.NewJannaAPIServerWithLog(service, logger)
+	deliveryGrpc.RegisterServer(grpcServer, service, logger)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// run HTTP server
-	logger.Info("starting HTTP Gateway proxy...")
-	httpServer = setupHTTPServer(ctx, cfg, logger)
-	go func() {
-		httpServer.ListenAndServe()
-	}()
-
-	// run GRPC server
-	logger.Info("starting GRPC server...")
-	l, err := net.Listen("tcp", ":"+cfg.Protocols.GRPC.Port) //nolint:gosec
+	// create TCP listener
+	ln, err := net.Listen("tcp", ":"+cfg.Protocols.HTTP.Port)
 	if err != nil {
-		logger.Error(err, "could not start GRPC server")
+		logger.Error(err, "")
+		os.Exit(1)
 	}
 
+	srv, err := createHTTPServer(ctx, ln, grpcServer)
+	if err != nil {
+		logger.Error(err, "could not create http server")
+		os.Exit(1)
+	}
+
+	l := logger.WithFields("addr", ln.Addr().String())
+	l.Info("start listening address")
+
+	fin := make(chan struct{})
 	go func() {
-		if err = grpcServer.Serve(l); err != nil {
-			logger.Error(err, "unenxpected error")
+		<-ctx.Done()
+		logger.Info("shutting down shared server...")
+		_ = srv.Shutdown(ctx)
+		close(fin)
+	}()
+
+	go func() {
+		err = srv.Serve(ln)
+		if err != nil {
+			logger.Error(err, "ListenAndServe")
 			os.Exit(1)
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	<-quit
-
-	// graceful shutdown
-	logger.Info("shutting down HTTP Gateway proxy...")
-	httpServer.Shutdown(ctx)
-	logger.Info("shutting down gRPC server...")
-	grpcServer.GracefulStop()
-
+	<-fin
 }
 
-func setupHTTPServer(ctx context.Context, cfg *config.Config, l log.Logger) *http.Server {
+func grpcHandlerFunc(grpcServer http.Handler, otherHandler http.Handler) http.Handler {
+	return h2c.NewHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		contentType := r.Header.Get("Content-Type")
+
+		if r.ProtoMajor == 2 && strings.Contains(contentType, "application/grpc") {
+			grpcServer.ServeHTTP(w, r)
+		} else {
+			otherHandler.ServeHTTP(w, r)
+		}
+	}), &http2.Server{})
+}
+
+func createHTTPServer(ctx context.Context, ln net.Listener, grpcServer *grpc.Server) (*http.Server, error) {
 	gwMux := runtime.NewServeMux(
 		runtime.WithMetadata(populateXRequestID),
 	)
+
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
-	grpcPort := cfg.Protocols.GRPC.Port
-	if err := v1pb.RegisterJannaAPIHandlerFromEndpoint(ctx, gwMux, ":"+grpcPort, opts); err != nil {
-		l.Error(err, "failed to start HTTP gateway")
+	if err := v1pb.RegisterJannaAPIHandlerFromEndpoint(ctx, gwMux, ln.Addr().String(), opts); err != nil {
+		return nil, fmt.Errorf("failed to start HTTP gateway: %w", err)
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.Handle("/", contextWrap(gwMux))
 
-	server := http.Server{
-		Addr:    ":" + cfg.Protocols.HTTP.Port,
-		Handler: mux,
+	server := &http.Server{
+		Handler: grpcHandlerFunc(grpcServer, mux),
 	}
 
-	return &server
+	return server, nil
 }
 
 func contextWrap(h http.Handler) http.Handler {
