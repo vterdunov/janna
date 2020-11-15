@@ -25,22 +25,28 @@ services:
   api:
     build:
       context: ../
-      dockerfile: build/Dockerfile.api
+      dockerfile: build/api.dockerfile
+      # dockerfile: build/api-debug.dockerfile
     container_name: api
     env_file: ../.env
     ports:
       - '8081:8081'
+      - '2345:2345'
+    # volumes:
+    #   - ../:/go/src/github.com/vterdunov/janna
     depends_on:
       - 'redis'
     cap_add:
       - SYS_PTRACE
     security_opt:
       - seccomp:unconfined
+      - apparmor:unconfined
+    # command: dlv debug /go/src/github.com/vterdunov/janna/cmd/api/main.go --headless --listen=:2345 --log
 
   worker:
     build:
       context: ../
-      dockerfile: build/Dockerfile.worker
+      dockerfile: build/worker.dockerfile
     env_file: ../.env
     restart: "no"
     # ports:

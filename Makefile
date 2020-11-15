@@ -14,7 +14,7 @@ GO_LDFLAGS := -ldflags '-extldflags "-fno-PIC -static" \
 	-X ${PROJECT}/internal/version.BuildTime=${BUILD_TIME}' \
 	-tags 'osusergo netgo static_build'
 
-GOLANGCI_LINTER_IMAGE = golangci/golangci-lint:v1.17.1
+GOLANGCI_LINTER_IMAGE = golangci/golangci-lint:v1.32.2
 
 all: lint docker
 
@@ -30,6 +30,10 @@ build: clean ## Build server binary
 .PHONY: build-worker-debug
 build-worker-debug: clean ## Build worker without compiler optomizations
 	$(GO_VARS) go build -v -gcflags "all=-N -l" -o worker ./cmd/worker/main.go
+
+.PHONY: build-api-debug
+build-api-debug: clean ## Build worker without compiler optomizations
+	$(GO_VARS) go build -v -gcflags "all=-N -l" -o worker ./cmd/api/main.go
 
 .PHONY: test
 test: ## Run tests. With -race flag

@@ -9,11 +9,13 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.9.0
+	github.com/hexdigest/gowrap v1.1.10
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/client_golang v0.9.4
+	github.com/prometheus/client_golang v1.0.0
 	github.com/rs/zerolog v1.14.3
 	github.com/stretchr/testify v1.3.0
-	github.com/vterdunov/janna-proto v0.0.0-20200404171736-d8037f0ffd1e
-	golang.org/x/net v0.0.0-20191007182048-72f939374954
-	google.golang.org/grpc v1.24.0
+	github.com/vterdunov/janna-proto v0.0.1
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
+	google.golang.org/genproto v0.0.0-20191007204434-a023cd5227bd
+	google.golang.org/grpc v1.27.1
 )

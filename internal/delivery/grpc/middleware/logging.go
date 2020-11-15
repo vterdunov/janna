@@ -1,252 +1,252 @@
 package middleware
 
-import (
-	"time"
+// import (
+// 	"time"
 
-	"github.com/pkg/errors"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
+// 	"github.com/pkg/errors"
+// 	"golang.org/x/net/context"
+// 	"google.golang.org/grpc/codes"
+// 	"google.golang.org/grpc/metadata"
+// 	"google.golang.org/grpc/status"
 
-	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
-	"github.com/vterdunov/janna/internal/log"
-)
+// 	apiV1 "github.com/vterdunov/janna-proto/gen/go/v1"
+// 	"github.com/vterdunov/janna/internal/log"
+// )
 
-func NewLoggingMiddleware(next apiV1.JannaAPIServer, logger log.Logger) apiV1.JannaAPIServer {
-	service := ErrorHandlingMiddleware{
-		logger: logger,
-		next:   next,
-	}
+// func NewLoggingMiddleware(next apiV1.JannaAPIServer, logger log.Logger) apiV1.JannaAPIServer {
+// 	service := ErrorHandlingMiddleware{
+// 		logger: logger,
+// 		next:   next,
+// 	}
 
-	return &service
-}
+// 	return &service
+// }
 
-type ErrorHandlingMiddleware struct {
-	logger log.Logger
-	next   apiV1.JannaAPIServer
-}
+// type ErrorHandlingMiddleware struct {
+// 	logger log.Logger
+// 	next   apiV1.JannaAPIServer
+// }
 
-func (m *ErrorHandlingMiddleware) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
-	begin := time.Now()
-	logger := withRequestID(ctx, m.logger)
-	logger = logger.WithFields(
-		"method", "AppInfo",
-	)
+// func (m *ErrorHandlingMiddleware) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
+// 	begin := time.Now()
+// 	logger := withRequestID(ctx, m.logger)
+// 	logger = logger.WithFields(
+// 		"method", "AppInfo",
+// 	)
 
-	logger.Info("calling endpoint")
+// 	logger.Info("calling endpoint")
 
-	res, err := m.next.AppInfo(ctx, in)
+// 	res, err := m.next.AppInfo(ctx, in)
 
-	defer func(begin time.Time) {
-		logger = logger.WithFields(
-			"took", time.Since(begin).String(),
-		)
+// 	defer func(begin time.Time) {
+// 		logger = logger.WithFields(
+// 			"took", time.Since(begin).String(),
+// 		)
 
-		if err != nil {
-			logger.Error(err, "call failed")
-		} else {
-			logger.Info("call successful")
-		}
+// 		if err != nil {
+// 			logger.Error(err, "call failed")
+// 		} else {
+// 			logger.Info("call successful")
+// 		}
 
-	}(begin)
+// 	}(begin)
 
-	return res, translateError(err)
-}
+// 	return res, translateError(err)
+// }
 
-func (m *ErrorHandlingMiddleware) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*apiV1.TaskStatusResponse, error) {
-	begin := time.Now()
-	logger := withRequestID(ctx, m.logger)
-	logger = logger.WithFields(
-		"method", "TaskStatus",
-	)
+// func (m *ErrorHandlingMiddleware) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*apiV1.TaskStatusResponse, error) {
+// 	begin := time.Now()
+// 	logger := withRequestID(ctx, m.logger)
+// 	logger = logger.WithFields(
+// 		"method", "TaskStatus",
+// 	)
 
-	logger.Info("calling endpoint")
+// 	logger.Info("calling endpoint")
 
-	res, err := m.next.TaskStatus(ctx, in)
+// 	res, err := m.next.TaskStatus(ctx, in)
 
-	defer func(begin time.Time) {
-		logger = logger.WithFields(
-			"took", time.Since(begin).String(),
-		)
+// 	defer func(begin time.Time) {
+// 		logger = logger.WithFields(
+// 			"took", time.Since(begin).String(),
+// 		)
 
-		if err != nil {
-			logger.Error(err, "call failed")
-		} else {
-			logger.Info("call successful")
-		}
+// 		if err != nil {
+// 			logger.Error(err, "call failed")
+// 		} else {
+// 			logger.Info("call successful")
+// 		}
 
-	}(begin)
+// 	}(begin)
 
-	return res, translateError(err)
-}
+// 	return res, translateError(err)
+// }
 
-func (m *ErrorHandlingMiddleware) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
-	begin := time.Now()
-	logger := withRequestID(ctx, m.logger)
-	logger = logger.WithFields(
-		"method", "VMInfo",
-	)
+// func (m *ErrorHandlingMiddleware) VMInfo(ctx context.Context, in *apiV1.VMInfoRequest) (*apiV1.VMInfoResponse, error) {
+// 	begin := time.Now()
+// 	logger := withRequestID(ctx, m.logger)
+// 	logger = logger.WithFields(
+// 		"method", "VMInfo",
+// 	)
 
-	logger.Info("calling endpoint")
+// 	logger.Info("calling endpoint")
 
-	res, err := m.next.VMInfo(ctx, in)
+// 	res, err := m.next.VMInfo(ctx, in)
 
-	defer func(begin time.Time) {
-		logger = logger.WithFields(
-			"took", time.Since(begin).String(),
-		)
+// 	defer func(begin time.Time) {
+// 		logger = logger.WithFields(
+// 			"took", time.Since(begin).String(),
+// 		)
 
-		if err != nil {
-			logger.Error(err, "call failed")
-		} else {
-			l := logger.WithFields("task_id", res.GetTaskId())
-			l.Info("call successful")
-		}
+// 		if err != nil {
+// 			logger.Error(err, "call failed")
+// 		} else {
+// 			l := logger.WithFields("task_id", res.GetTaskId())
+// 			l.Info("call successful")
+// 		}
 
-	}(begin)
+// 	}(begin)
 
-	return res, translateError(err)
-}
+// 	return res, translateError(err)
+// }
 
-func (m *ErrorHandlingMiddleware) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
-	begin := time.Now()
-	logger := withRequestID(ctx, m.logger)
-	logger = logger.WithFields(
-		"method", "VMDeploy",
-		"vm_name", in.Name,
-		"ova_url", in.OvaUrl,
-		"datacenter", in.Datacenter,
-		"folder", in.Folder,
-		"annotation", in.Annotation,
-		"networks", in.Networks,
-		"datastores", in.Datastores.String(),
-		"computer_resources", in.ComputerResources.String(),
-	)
+// func (m *ErrorHandlingMiddleware) VMDeploy(ctx context.Context, in *apiV1.VMDeployRequest) (*apiV1.VMDeployResponse, error) {
+// 	begin := time.Now()
+// 	logger := withRequestID(ctx, m.logger)
+// 	logger = logger.WithFields(
+// 		"method", "VMDeploy",
+// 		"vm_name", in.Name,
+// 		"ova_url", in.OvaUrl,
+// 		"datacenter", in.Datacenter,
+// 		"folder", in.Folder,
+// 		"annotation", in.Annotation,
+// 		"networks", in.Networks,
+// 		"datastores", in.Datastores.String(),
+// 		"computer_resources", in.ComputerResources.String(),
+// 	)
 
-	logger.Info("calling endpoint")
+// 	logger.Info("calling endpoint")
 
-	res, err := m.next.VMDeploy(ctx, in)
+// 	res, err := m.next.VMDeploy(ctx, in)
 
-	defer func(begin time.Time) {
-		logger = logger.WithFields(
-			"took", time.Since(begin).String(),
-		)
+// 	defer func(begin time.Time) {
+// 		logger = logger.WithFields(
+// 			"took", time.Since(begin).String(),
+// 		)
 
-		if err != nil {
-			logger.Error(err, "call failed")
-		} else {
-			l := logger.WithFields("task_id", res.TaskId)
-			l.Info("call successful")
-		}
+// 		if err != nil {
+// 			logger.Error(err, "call failed")
+// 		} else {
+// 			l := logger.WithFields("task_id", res.TaskId)
+// 			l.Info("call successful")
+// 		}
 
-	}(begin)
+// 	}(begin)
 
-	return res, translateError(err)
-}
+// 	return res, translateError(err)
+// }
 
-func (m *ErrorHandlingMiddleware) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VMListResponse, error) {
-	begin := time.Now()
-	logger := withRequestID(ctx, m.logger)
-	logger = logger.WithFields(
-		"method", "VMList",
-		"datacenter", in.Datacenter,
-		"folder", in.Folder,
-		"resource_pool", in.ResourcePool,
-	)
+// func (m *ErrorHandlingMiddleware) VMList(ctx context.Context, in *apiV1.VMListRequest) (*apiV1.VMListResponse, error) {
+// 	begin := time.Now()
+// 	logger := withRequestID(ctx, m.logger)
+// 	logger = logger.WithFields(
+// 		"method", "VMList",
+// 		"datacenter", in.Datacenter,
+// 		"folder", in.Folder,
+// 		"resource_pool", in.ResourcePool,
+// 	)
 
-	logger.Info("calling endpoint")
+// 	logger.Info("calling endpoint")
 
-	res, err := m.next.VMList(ctx, in)
+// 	res, err := m.next.VMList(ctx, in)
 
-	defer func(begin time.Time) {
-		logger = logger.WithFields(
-			"took", time.Since(begin).String(),
-		)
+// 	defer func(begin time.Time) {
+// 		logger = logger.WithFields(
+// 			"took", time.Since(begin).String(),
+// 		)
 
-		if err != nil {
-			logger.Error(err, "call failed")
-		} else {
-			l := logger.WithFields("task_id", res.TaskId)
-			l.Info("call successful")
-		}
+// 		if err != nil {
+// 			logger.Error(err, "call failed")
+// 		} else {
+// 			l := logger.WithFields("task_id", res.TaskId)
+// 			l.Info("call successful")
+// 		}
 
-	}(begin)
+// 	}(begin)
 
-	return res, translateError(err)
-}
+// 	return res, translateError(err)
+// }
 
-func (m *ErrorHandlingMiddleware) VMPower(ctx context.Context, in *apiV1.VMPowerRequest) (*apiV1.VMPowerResponse, error) {
-	begin := time.Now()
-	logger := withRequestID(ctx, m.logger)
-	logger = logger.WithFields(
-		"method", "VMPower",
-		"vm_uuid", in.VmUuid,
-		"vm_power_request_body", in.VmPowerRequestBody.String(),
-	)
+// func (m *ErrorHandlingMiddleware) VMPower(ctx context.Context, in *apiV1.VMPowerRequest) (*apiV1.VMPowerResponse, error) {
+// 	begin := time.Now()
+// 	logger := withRequestID(ctx, m.logger)
+// 	logger = logger.WithFields(
+// 		"method", "VMPower",
+// 		"vm_uuid", in.VmUuid,
+// 		"vm_power_request_body", in.VmPowerRequestBody.String(),
+// 	)
 
-	logger.Info("calling endpoint")
+// 	logger.Info("calling endpoint")
 
-	res, err := m.next.VMPower(ctx, in)
+// 	res, err := m.next.VMPower(ctx, in)
 
-	defer func(begin time.Time) {
-		logger = logger.WithFields(
-			"took", time.Since(begin).String(),
-		)
+// 	defer func(begin time.Time) {
+// 		logger = logger.WithFields(
+// 			"took", time.Since(begin).String(),
+// 		)
 
-		if err != nil {
-			logger.Error(err, "call failed")
-		} else {
-			logger.Info("call successful")
-		}
+// 		if err != nil {
+// 			logger.Error(err, "call failed")
+// 		} else {
+// 			logger.Info("call successful")
+// 		}
 
-	}(begin)
+// 	}(begin)
 
-	return res, translateError(err)
-}
+// 	return res, translateError(err)
+// }
 
-func withRequestID(ctx context.Context, logger log.Logger) log.Logger {
-	reqID := ""
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		if len(md["request_id"]) > 0 {
-			reqID = md["request_id"][0]
-		}
-	}
+// func withRequestID(ctx context.Context, logger log.Logger) log.Logger {
+// 	reqID := ""
+// 	if md, ok := metadata.FromIncomingContext(ctx); ok {
+// 		if len(md["request_id"]) > 0 {
+// 			reqID = md["request_id"][0]
+// 		}
+// 	}
 
-	l := logger.WithFields(
-		"request_id", reqID,
-	)
+// 	l := logger.WithFields(
+// 		"request_id", reqID,
+// 	)
 
-	return l
-}
+// 	return l
+// }
 
-type statusError interface {
-	GRPCStatus() *status.Status
-}
+// type statusError interface {
+// 	GRPCStatus() *status.Status
+// }
 
-func isGrpcStatusError(err error) bool {
-	_, ok := err.(statusError)
-	return ok
-}
+// func isGrpcStatusError(err error) bool {
+// 	_, ok := err.(statusError)
+// 	return ok
+// }
 
-// translateError translate business logic erros to transport level errors.
-// May become a clumsy because the need to check all exposed errors
-// from all packages with business logic.
-func translateError(err error) error {
-	if err == nil {
-		return nil
-	}
+// // translateError translate business logic erros to transport level errors.
+// // May become a clumsy because the need to check all exposed errors
+// // from all packages with business logic.
+// func translateError(err error) error {
+// 	if err == nil {
+// 		return nil
+// 	}
 
-	if isGrpcStatusError(err) {
-		return err
-	}
+// 	if isGrpcStatusError(err) {
+// 		return err
+// 	}
 
-	switch errors.Cause(err) {
-	// case producer.ErrVMAlreadyExist:
-	// 	err = status.Errorf(codes.AlreadyExists, err.Error())
-	default:
-		err = status.Errorf(codes.Internal, err.Error())
-	}
+// 	switch errors.Cause(err) {
+// 	// case producer.ErrVMAlreadyExist:
+// 	// 	err = status.Errorf(codes.AlreadyExists, err.Error())
+// 	default:
+// 		err = status.Errorf(codes.Internal, err.Error())
+// 	}
 
-	return err
-}
+// 	return err
+// }

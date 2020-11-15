@@ -8,28 +8,32 @@ import (
 	"os"
 	"strings"
 
-	"github.com/vterdunov/janna/internal/producer/broker"
-
 	"github.com/google/uuid"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/vterdunov/janna-proto/box"
+	v1pb "github.com/vterdunov/janna-proto/gen/go/v1"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	v1pb "github.com/vterdunov/janna-proto/gen/go/v1"
 	"github.com/vterdunov/janna/internal/appinfo"
 	"github.com/vterdunov/janna/internal/config"
 	deliveryGrpc "github.com/vterdunov/janna/internal/delivery/grpc"
 	"github.com/vterdunov/janna/internal/delivery/grpc/middleware"
 	"github.com/vterdunov/janna/internal/log"
+	"github.com/vterdunov/janna/internal/producer/broker"
 )
 
 func main() {
+	fmt.Println("-----")
+	fmt.Println(box.Has("/janna_api.swagger.json"))
+	fmt.Println("-----")
+
 	logger := log.NewLogger()
 
 	cfg, err := config.Load()
@@ -67,7 +71,7 @@ func main() {
 
 	// register service and middlewares
 	service := deliveryGrpc.NewService(appRep, producer)
-	service = middleware.NewLoggingMiddleware(service, logger)
+	service = middleware.NewJannaAPIServerWithLog(service, logger)
 	deliveryGrpc.RegisterServer(grpcServer, service, logger)
 
 	ctx, cancel := context.WithCancel(context.Background())

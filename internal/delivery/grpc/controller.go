@@ -74,6 +74,10 @@ func (s Service) TaskStatus(ctx context.Context, in *apiV1.TaskStatusRequest) (*
 	return &resp, nil
 }
 
+func (s Service) OpenApi(ctx context.Context, in *apiV1.OpenApiRequest) (*apiV1.OpenApiResponse, error) {
+	return nil, nil
+}
+
 func (s Service) AppInfo(ctx context.Context, in *apiV1.AppInfoRequest) (*apiV1.AppInfoResponse, error) {
 	command := appinfo.NewAppInfo(s.appInfoRepository)
 
